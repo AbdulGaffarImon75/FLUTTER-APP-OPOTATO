@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'bottom_nav_bar.dart';
-import 'kacchi_page.dart';
+import 'cuisines/kacchi_page.dart';
+import 'cuisines/burger_page.dart';
+import 'cuisines/pizza_page.dart';
+import 'cuisines/wrap_page.dart';
 
 class Cuisine {
   final String label;
@@ -40,17 +43,17 @@ class HomePage extends StatelessWidget {
       Cuisine(
         label: 'Pizza',
         image: 'assets/pizza.jpg',
-        page: DummyPage('Pizza'),
+        page: const PizzaPage(),
       ),
       Cuisine(
         label: 'Burger',
         image: 'assets/burger.jpg',
-        page: DummyPage('Burger'),
+        page: const BurgerPage(),
       ),
       Cuisine(
         label: 'Wraps',
         image: 'assets/wraps.jpg',
-        page: DummyPage('Wraps'),
+        page: const WrapsPage(),
       ),
     ];
 

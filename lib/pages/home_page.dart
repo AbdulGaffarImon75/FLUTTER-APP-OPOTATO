@@ -313,20 +313,20 @@ class HomePage extends StatelessWidget {
 
 // DummyPage is a placeholder for other pages
 // that will be navigated to when the user taps on a cuisine or combo.
-class DummyPage extends StatelessWidget {
-  final String title;
-  const DummyPage(this.title, {super.key});
+//class DummyPage extends StatelessWidget {
+ // final String title;
+  //const DummyPage(this.title, {super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title), centerTitle: true),
-      body: Center(
-        child: Text(
-          'Welcome to $title Page!',
-          style: const TextStyle(fontSize: 24),
-        ),
-      ),
-    );
-  }
-}
+ // @override
+  //Widget build(BuildContext context) {
+   // return Scaffold(
+      //appBar: AppBar(title: Text(title), centerTitle: true),
+      //body: Center(
+        //child: Text(
+//'Welcome to $title Page!',
+          //style: const TextStyle(fontSize: 24),
+        //),
+     // ),
+//);
+ // }
+//}

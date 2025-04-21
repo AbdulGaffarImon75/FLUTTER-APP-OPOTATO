@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "740988160267",
+    "project_id": "opotato-14b58",
+    "storage_bucket": "opotato-14b58.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:740988160267:android:735bcd4531077ca4907a0e",
+        "android_client_info": {
+          "package_name": "com.example.flutter_application_1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCD7huBsp61A_1Ecee8S3i6wiMpxjmRX4M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

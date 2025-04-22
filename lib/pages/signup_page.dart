@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/auth_service.dart';
 import 'bottom_nav_bar.dart';
 import 'package:flutter_application_1/pages/profile_page.dart';
-import 'login_page.dart';
+// import 'login_page.dart';
 import 'package:flutter_application_1/user_service.dart';
 
 class SignupPage extends StatefulWidget {
@@ -211,21 +211,24 @@ class _SignupPageState extends State<SignupPage> {
                           ),
                         ),
                         child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const LoginPage(),
-                              ),
-                            );
-                          },
+                          onPressed: _handleSignUp,
+                          // onPressed: () {
+                          //   Navigator.push(
+                          //     context,
+                          //     MaterialPageRoute(
+                          //       builder: (context) => const LoginPage(),
+                          //     ),
+                          //   );
+                          // },
                           // onPressed: () {
                           //   final user = User(
                           //     name: _nameController.text.trim(),
                           //     number: _numberController.text.trim(),
                           //     email: _emailController.text.trim(),
                           //   );
-                          //   _dbService.create(user); // Save user to Firestore
+                          //   AuthService.createUserWithEmailAndPassword(
+                          //     user,
+                          //   ); // Save user to Firestore
                           //   Navigator.push(
                           //     context,
                           //     MaterialPageRoute(

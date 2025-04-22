@@ -119,6 +119,7 @@ class HomePage extends StatelessWidget {
                       _actionButton(Icons.local_offer, "Offers"),
                       _actionButton(Icons.person_add, "Following"),
                       _actionButton(Icons.shopping_bag, "Order"),
+                      _actionButton(Icons.shopping_bag, "Boishakh Offer"),
                     ],
                   ),
                 ),

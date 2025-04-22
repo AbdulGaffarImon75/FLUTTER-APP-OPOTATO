@@ -3,6 +3,7 @@ import 'package:flutter_application_1/pages/signup_page.dart';
 import 'package:flutter_application_1/auth_service.dart';
 import 'bottom_nav_bar.dart';
 import 'home_page.dart';
+import 'profile_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -31,7 +32,7 @@ class _LoginPageState extends State<LoginPage> {
     if (user != null && mounted) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const HomePage()),
+        MaterialPageRoute(builder: (context) => const ProfilePage()),
       );
     }
   }

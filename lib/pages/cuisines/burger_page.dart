@@ -6,6 +6,7 @@ class BurgerPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(title: const Text('Burgers'), centerTitle: true),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

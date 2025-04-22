@@ -6,6 +6,7 @@ class KacchiPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(title: const Text('Kacchi'), centerTitle: true),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

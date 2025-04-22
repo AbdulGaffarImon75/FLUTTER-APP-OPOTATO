@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'bottom_nav_bar.dart';
+import 'package:flutter_application_1/user_service.dart';
+import 'package:flutter_application_1/auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -125,9 +128,65 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () {
-                          // Save profile changes
+                        onPressed: () async {
+                          final user = FirebaseAuth.instance.currentUser;
+                          if (user != null) {
+                            final updatedData = {
+                              'name': _nameController.text.trim(),
+                              'email': _emailController.text.trim(),
+                              'phone': _phoneController.text.trim(),
+                            };
+                            final userService = UserService();
+                            await userService.updateUser(user.uid, updatedData);
+
+                            if (_showPasswordFields) {
+                              final currentPass =
+                                  _currentPasswordController.text.trim();
+                              final newPass =
+                                  _newPasswordController.text.trim();
+                              final confirmPass =
+                                  _confirmPasswordController.text.trim();
+
+                              if (newPass != confirmPass) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('New passwords do not match'),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              final isValid = await AuthService()
+                                  .validateCurrentPassword(
+                                    _emailController.text.trim(),
+                                    currentPass,
+                                  );
+
+                              if (!isValid) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Current password is incorrect',
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              await AuthService().changePassword(newPass);
+                            }
+
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Profile updated'),
+                                ),
+                              );
+                            }
+                          }
                         },
+
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue,
                           padding: const EdgeInsets.symmetric(vertical: 16),

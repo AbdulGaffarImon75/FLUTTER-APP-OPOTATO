@@ -6,6 +6,7 @@ class PizzaPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(title: const Text('Pizza'), centerTitle: true),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

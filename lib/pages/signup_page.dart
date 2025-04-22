@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/auth_service.dart';
 import 'bottom_nav_bar.dart';
 import 'package:flutter_application_1/pages/profile_page.dart';
+import 'login_page.dart';
+import 'package:flutter_application_1/user_service.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -11,7 +13,12 @@ class SignupPage extends StatefulWidget {
 }
 
 class _SignupPageState extends State<SignupPage> {
+  // final _dbService = DatabaseService();
+
   final AuthService _auth = AuthService();
+
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _numberController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
@@ -19,6 +26,8 @@ class _SignupPageState extends State<SignupPage> {
 
   @override
   void dispose() {
+    _nameController.dispose();
+    _numberController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -39,6 +48,13 @@ class _SignupPageState extends State<SignupPage> {
     );
 
     if (user != null && mounted) {
+      final userService = UserService();
+      await userService.createUserDocument(user.uid, {
+        'name': _nameController.text.trim(),
+        'number': _numberController.text.trim(),
+        'email': _emailController.text.trim(),
+      });
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const ProfilePage()),
@@ -109,9 +125,39 @@ class _SignupPageState extends State<SignupPage> {
                     ),
                     const SizedBox(height: 16),
                     TextField(
+                      controller: _nameController,
+                      decoration: InputDecoration(
+                        hintText: 'Your Name',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                      ),
+                      keyboardType: TextInputType.name,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _numberController,
+                      decoration: InputDecoration(
+                        hintText: 'Your Phone Number',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                      ),
+                      keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
                       controller: _emailController,
                       decoration: InputDecoration(
-                        hintText: 'email@domain.com',
+                        hintText: 'emailaddress@email.com',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -164,11 +210,39 @@ class _SignupPageState extends State<SignupPage> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        child: const Text(
-                          'Continue',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const LoginPage(),
+                              ),
+                            );
+                          },
+                          // onPressed: () {
+                          //   final user = User(
+                          //     name: _nameController.text.trim(),
+                          //     number: _numberController.text.trim(),
+                          //     email: _emailController.text.trim(),
+                          //   );
+                          //   _dbService.create(user); // Save user to Firestore
+                          //   Navigator.push(
+                          //     context,
+                          //     MaterialPageRoute(
+                          //       builder: (context) => const LoginPage(),
+                          //     ),
+                          //   );
+                          // },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'Sign up',
+                            style: TextStyle(color: Colors.white),
                           ),
                         ),
                       ),
@@ -188,5 +262,16 @@ class _SignupPageState extends State<SignupPage> {
         ),
       ),
     );
+  }
+}
+
+class User {
+  final String name;
+  final String number;
+  final String email;
+
+  User({required this.name, required this.number, required this.email});
+  Map<String, dynamic> toMap() {
+    return {'name': name, 'number': number, 'email': email};
   }
 }

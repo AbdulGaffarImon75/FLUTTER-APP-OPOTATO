@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/auth_service.dart';
 import 'bottom_nav_bar.dart';
 import 'package:flutter_application_1/pages/profile_page.dart';
-// import 'login_page.dart';
-import 'package:flutter_application_1/user_service.dart';
+import 'package:flutter_application_1/user_service.dart'; // Import UserService
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -13,9 +12,8 @@ class SignupPage extends StatefulWidget {
 }
 
 class _SignupPageState extends State<SignupPage> {
-  // final _dbService = DatabaseService();
-
   final AuthService _auth = AuthService();
+  final UserService _userService = UserService(); // Instantiate UserService
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _numberController = TextEditingController();
@@ -35,6 +33,7 @@ class _SignupPageState extends State<SignupPage> {
   }
 
   Future<void> _handleSignUp() async {
+    // Check if passwords match
     if (_passwordController.text != _confirmPasswordController.text) {
       ScaffoldMessenger.of(
         context,
@@ -42,19 +41,25 @@ class _SignupPageState extends State<SignupPage> {
       return;
     }
 
+    // Create a user using the AuthService
     final user = await _auth.createUserWithEmailAndPassword(
       _emailController.text.trim(),
       _passwordController.text.trim(),
     );
 
     if (user != null && mounted) {
-      final userService = UserService();
-      await userService.createUserDocument(user.uid, {
+      // Prepare user data
+      final userData = {
         'name': _nameController.text.trim(),
-        'number': _numberController.text.trim(),
+        'phone': _numberController.text.trim(),
         'email': _emailController.text.trim(),
-      });
+        'uid': user.uid, // Store the UID as well
+      };
 
+      // Use UserService to save user details in Firestore
+      await _userService.createUserDocument(user.uid, userData);
+
+      // Navigate to Profile Page after saving details
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const ProfilePage()),
@@ -210,43 +215,9 @@ class _SignupPageState extends State<SignupPage> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        child: ElevatedButton(
-                          onPressed: _handleSignUp,
-                          // onPressed: () {
-                          //   Navigator.push(
-                          //     context,
-                          //     MaterialPageRoute(
-                          //       builder: (context) => const LoginPage(),
-                          //     ),
-                          //   );
-                          // },
-                          // onPressed: () {
-                          //   final user = User(
-                          //     name: _nameController.text.trim(),
-                          //     number: _numberController.text.trim(),
-                          //     email: _emailController.text.trim(),
-                          //   );
-                          //   AuthService.createUserWithEmailAndPassword(
-                          //     user,
-                          //   ); // Save user to Firestore
-                          //   Navigator.push(
-                          //     context,
-                          //     MaterialPageRoute(
-                          //       builder: (context) => const LoginPage(),
-                          //     ),
-                          //   );
-                          // },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text(
-                            'Sign up',
-                            style: TextStyle(color: Colors.white),
-                          ),
+                        child: const Text(
+                          'Sign up',
+                          style: TextStyle(color: Colors.white),
                         ),
                       ),
                     ),
@@ -265,16 +236,5 @@ class _SignupPageState extends State<SignupPage> {
         ),
       ),
     );
-  }
-}
-
-class User {
-  final String name;
-  final String number;
-  final String email;
-
-  User({required this.name, required this.number, required this.email});
-  Map<String, dynamic> toMap() {
-    return {'name': name, 'number': number, 'email': email};
   }
 }

@@ -25,6 +25,9 @@ class AuthService {
       return cred.user;
     } catch (e) {
       developer.log("Auth error: $e");
+      if (e is FirebaseAuthException) {
+        developer.log("FirebaseAuthException: ${e.message}");
+      }
       return null;
     }
   }
@@ -41,6 +44,9 @@ class AuthService {
       return cred.user;
     } catch (e) {
       developer.log("Login error: $e");
+      if (e is FirebaseAuthException) {
+        developer.log("FirebaseAuthException: ${e.message}");
+      }
       return null;
     }
   }
@@ -53,6 +59,7 @@ class AuthService {
       );
       return cred.user != null;
     } catch (e) {
+      developer.log("Password validation error: $e");
       return false;
     }
   }
@@ -65,54 +72,15 @@ class AuthService {
   }
 
   Future<void> signOut() async {
-    await _auth.signOut();
+    try {
+      await _auth.signOut();
+      final user = _auth.currentUser;
+      if (user != null) {
+        await user.reload(); // Reload to clear session
+      }
+      developer.log("User signed out and session reloaded");
+    } catch (e) {
+      developer.log("SignOut error: $e");
+    }
   }
 }
-
-// import 'dart:developer';
-
-// import 'package:firebase_auth/firebase_auth.dart';
-
-// class AuthService {
-//   final _auth = FirebaseAuth.instance;
-
-//   Future<User?> createUserWithEmailAndPassword(
-//     String email,
-//     String password,
-//   ) async {
-//     try {
-//       final cred = await _auth.createUserWithEmailAndPassword(
-//         email: email,
-//         password: password,
-//       );
-//       return cred.user;
-//     } catch (e) {
-//       log("Something went wrong");
-//     }
-//     return null;
-//   }
-
-//   Future<User?> loginUserWithEmailAndPassword(
-//     String email,
-//     String password,
-//   ) async {
-//     try {
-//       final cred = await _auth.signInWithEmailAndPassword(
-//         email: email,
-//         password: password,
-//       );
-//       return cred.user;
-//     } catch (e) {
-//       log("Something went wrong");
-//     }
-//     return null;
-//   }
-
-//   Future<void> signout() async {
-//     try {
-//       await _auth.signOut();
-//     } catch (e) {
-//       log("Something went wrong");
-//     }
-//   }
-// }

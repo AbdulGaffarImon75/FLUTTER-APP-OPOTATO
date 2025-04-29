@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'login_page.dart';
 import 'home_page.dart';
 import 'profile_page.dart';
-import 'restaurant_dashboard.dart'; // Import the restaurant dashboard page
+import 'restaurant_dashboard.dart'; // Import the restaurant dashboard page\
+import 'seat_booking.dart';
 
 class BottomNavBar extends StatelessWidget {
   final int activeIndex;
@@ -52,8 +53,15 @@ class BottomNavBar extends StatelessWidget {
               color: activeIndex == 0 ? Colors.purple : Colors.grey,
             ),
             IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.search),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SeatBookingPage(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.event_seat),
               color: activeIndex == 1 ? Colors.purple : Colors.grey,
             ),
             IconButton(
@@ -68,7 +76,7 @@ class BottomNavBar extends StatelessWidget {
             ),
             IconButton(
               onPressed: () {},
-              icon: const Icon(Icons.shopping_cart),
+              icon: const Icon(Icons.notifications),
               color: activeIndex == 3 ? Colors.purple : Colors.grey,
             ),
             IconButton(

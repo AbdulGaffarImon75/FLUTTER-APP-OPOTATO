@@ -1,16 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'bottom_nav_bar.dart';
 import 'cuisines/kacchi_page.dart';
 import 'cuisines/burger_page.dart';
-import 'cuisines/pizza_page.dart';
 import 'cuisines/wrap_page.dart';
+import 'cuisines/pizza_page.dart';
+import 'topbar/bookmark_page.dart';
+import 'topbar/offers_page.dart';
+import 'topbar/following_page.dart';
+import 'topbar/order_page.dart';
+import 'topbar/check_in_page.dart';
 
 class Cuisine {
   final String label;
-  final String image;
-  final Widget page;
+  final String imageUrl;
 
-  Cuisine({required this.label, required this.image, required this.page});
+  Cuisine({required this.label, required this.imageUrl});
+
+  factory Cuisine.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return Cuisine(
+      label: data['label'] ?? '',
+      imageUrl: data['imageUrl'] ?? '',
+    );
+  }
 }
 
 class Combo {
@@ -29,58 +42,101 @@ class Combo {
   });
 }
 
-class HomePage extends StatelessWidget {
+class Billboard {
+  final String imageUrl;
+  final String title;
+
+  Billboard({required this.imageUrl, required this.title});
+}
+
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  List<Cuisine> _allCuisines = [];
+  Billboard? _billboard;
+
+  final List<Combo> combos = [
+    Combo(
+      title: 'Meaty Supreme',
+      vendor: 'Meat & Marrow',
+      price: '৳690',
+      image: 'assets/meaty_supreme.jpg',
+      page: DummyPage('Meaty Supreme'),
+    ),
+    Combo(
+      title: 'Burger Meal',
+      vendor: "Khana's",
+      price: '৳1049',
+      image: 'assets/burger_meal.jpeg',
+      page: DummyPage('Burger Meal'),
+    ),
+    Combo(
+      title: 'Unlimited Pizza',
+      vendor: "Domino's Pizza",
+      price: '৳999',
+      image: 'assets/pizza_unlimited.jpg',
+      page: DummyPage('Unlimited Pizza'),
+    ),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchCuisines();
+    fetchBillboard();
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+      });
+    });
+  }
+
+  Future<void> fetchCuisines() async {
+    final snapshot =
+        await FirebaseFirestore.instance.collection('cuisines').get();
+    setState(() {
+      _allCuisines =
+          snapshot.docs.map((doc) => Cuisine.fromFirestore(doc)).toList();
+    });
+  }
+
+  Future<void> fetchBillboard() async {
+    final snapshot =
+        await FirebaseFirestore.instance.collection('offers').limit(1).get();
+    if (snapshot.docs.isNotEmpty) {
+      final data = snapshot.docs.first.data() as Map<String, dynamic>? ?? {};
+      setState(() {
+        _billboard = Billboard(
+          imageUrl: data['imageURL'] ?? '',
+          title: '${data['name'] ?? ''}\n${data['price'] ?? ''}',
+        );
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<Cuisine> get _filteredCuisines {
+    if (_searchQuery.isEmpty) return _allCuisines;
+    return _allCuisines
+        .where((c) => c.label.toLowerCase().contains(_searchQuery))
+        .toList();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final cuisines = [
-      Cuisine(
-        label: 'Kacchi',
-        image: 'assets/kacchi.jpeg',
-        page: const KacchiPage(),
-      ),
-      Cuisine(
-        label: 'Pizza',
-        image: 'assets/pizza.jpg',
-        page: const PizzaPage(),
-      ),
-      Cuisine(
-        label: 'Burger',
-        image: 'assets/burger.jpg',
-        page: const BurgerPage(),
-      ),
-      Cuisine(
-        label: 'Wraps',
-        image: 'assets/wraps.jpg',
-        page: const WrapsPage(),
-      ),
-    ];
-
-    final combos = [
-      Combo(
-        title: 'Meaty Supreme',
-        vendor: 'Meat & Marrow',
-        price: '৳690',
-        image: 'assets/meaty_supreme.jpg',
-        page: DummyPage('Meaty Supreme'),
-      ),
-      Combo(
-        title: 'Burger Meal',
-        vendor: "Khana's",
-        price: '৳1049',
-        image: 'assets/burger_meal.jpeg',
-        page: DummyPage('Burger Meal'),
-      ),
-      Combo(
-        title: 'Unlimited Pizza',
-        vendor: "Domino's Pizza",
-        price: '৳999',
-        image: 'assets/pizza_unlimited.jpg',
-        page: DummyPage('Unlimited Pizza'),
-      ),
-    ];
-
     return Scaffold(
       backgroundColor: Colors.white,
       bottomNavigationBar: const BottomNavBar(activeIndex: 2),
@@ -97,11 +153,12 @@ class HomePage extends StatelessWidget {
                     const SizedBox(width: 10),
                     Expanded(
                       child: TextField(
+                        controller: _searchController,
                         decoration: InputDecoration(
                           hintText: 'Search',
                           prefixIcon: const Icon(Icons.search),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(20),
                           ),
                           filled: true,
                           fillColor: Colors.grey[200],
@@ -115,97 +172,191 @@ class HomePage extends StatelessWidget {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      _actionButton(Icons.bookmark, "Bookmarks"),
-                      _actionButton(Icons.local_offer, "Offers"),
-                      _actionButton(Icons.person_add, "Following"),
-                      _actionButton(Icons.shopping_bag, "Order"),
-                      _actionButton(Icons.shopping_bag, "Boishakh Offer"),
+                      _actionButton(Icons.bookmark, "Bookmarks", () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const BookmarkPage(),
+                          ),
+                        );
+                      }),
+                      _actionButton(Icons.local_offer, "Offers", () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const OffersPage()),
+                        );
+                      }),
+                      _actionButton(Icons.person_add, "Following", () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const FollowingPage(),
+                          ),
+                        );
+                      }),
+                      _actionButton(Icons.shopping_bag, "Reservations", () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const OrderPage()),
+                        );
+                      }),
+                      _actionButton(Icons.location_on_rounded, "Check Ins", () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const CheckInPage(),
+                          ),
+                        );
+                      }),
                     ],
                   ),
                 ),
                 const SizedBox(height: 16),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => DummyPage('Billboard')),
-                    );
-                  },
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Stack(
-                      children: [
-                        Image.asset(
-                          'assets/platter.jpg',
-                          height: 150,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                        ),
-                        Positioned(
-                          left: 12,
-                          top: 12,
-                          child: Container(
-                            padding: const EdgeInsets.all(6),
-                            color: Colors.white70,
-                            child: const Text(
-                              "Mejo Feast Platter\nonly ৳1555TK",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
+                _billboard == null
+                    ? const Center(child: CircularProgressIndicator())
+                    : GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => DummyPage(_billboard!.title),
+                          ),
+                        );
+                      },
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Stack(
+                          children: [
+                            Image.network(
+                              _billboard!.imageUrl,
+                              height: 150,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  height: 150,
+                                  color: Colors.grey[300],
+                                  child: const Center(
+                                    child: Icon(Icons.image, size: 40),
+                                  ),
+                                );
+                              },
+                            ),
+                            Positioned(
+                              left: 12,
+                              top: 12,
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                color: Colors.white70,
+                                child: Text(
+                                  _billboard!.title,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
-                    Text(
-                      "Cuisines",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Icon(Icons.chevron_right),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  height: 90,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: cuisines.length,
-                    itemBuilder: (context, index) {
-                      final cuisine = cuisines[index];
-                      return GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => cuisine.page),
-                          );
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.only(right: 12),
-                          child: Column(
-                            children: [
-                              CircleAvatar(
-                                backgroundImage: AssetImage(cuisine.image),
-                                radius: 30,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(cuisine.label),
-                            ],
-                          ),
+                const SizedBox(height: 20),
+                if (_filteredCuisines.isNotEmpty) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: const [
+                      Text(
+                        "Cuisines",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
-                      );
-                    },
+                      ),
+                      Icon(Icons.chevron_right),
+                    ],
                   ),
-                ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    height: 90,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _filteredCuisines.length,
+                      itemBuilder: (context, index) {
+                        final cuisine = _filteredCuisines[index];
+                        return GestureDetector(
+                          onTap: () {
+                            if (cuisine.label.toLowerCase() == 'kacchi') {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const KacchiPage(),
+                                ),
+                              );
+                            } else if (cuisine.label.toLowerCase() ==
+                                'burger') {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const BurgerPage(),
+                                ),
+                              );
+                            } else if (cuisine.label.toLowerCase() == 'pizza') {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const PizzaPage(),
+                                ),
+                              );
+                            } else if (cuisine.label.toLowerCase() == 'wrap') {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const WrapsPage(),
+                                ),
+                              );
+                            } else {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => DummyPage(cuisine.label),
+                                ),
+                              );
+                            }
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 12),
+                            child: Column(
+                              children: [
+                                ClipOval(
+                                  child: Image.network(
+                                    cuisine.imageUrl,
+                                    width: 60,
+                                    height: 60,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        width: 60,
+                                        height: 60,
+                                        color: Colors.grey[300],
+                                        child: const Icon(
+                                          Icons.fastfood,
+                                          size: 30,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(cuisine.label),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 20),
                 const Text(
                   "Explore Combo",
@@ -285,7 +436,6 @@ class HomePage extends StatelessWidget {
                     },
                   ),
                 ),
-                const SizedBox(height: 20),
               ],
             ),
           ),
@@ -294,11 +444,11 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _actionButton(IconData icon, String label) {
+  Widget _actionButton(IconData icon, String label, VoidCallback onPressed) {
     return Padding(
       padding: const EdgeInsets.only(right: 10),
       child: ElevatedButton.icon(
-        onPressed: () {},
+        onPressed: onPressed,
         icon: Icon(icon, size: 16),
         label: Text(label),
         style: ElevatedButton.styleFrom(
@@ -315,8 +465,6 @@ class HomePage extends StatelessWidget {
   }
 }
 
-// DummyPage is a placeholder for other pages
-// that will be navigated to when the user taps on a cuisine or combo.
 class DummyPage extends StatelessWidget {
   final String title;
   const DummyPage(this.title, {super.key});

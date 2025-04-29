@@ -15,35 +15,38 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
   final TextEditingController _offerNameController = TextEditingController();
   final TextEditingController _offerPriceController = TextEditingController();
   final TextEditingController _seatStatusController = TextEditingController();
+  final TextEditingController _imageUrlController = TextEditingController();
 
   Future<bool> _checkIfLoggedIn() async {
-    // Check if user is logged in
     User? user = FirebaseAuth.instance.currentUser;
-    return user != null; // If user is logged in, return true
+    return user != null;
   }
 
   Future<void> _postOffer() async {
-    // Get logged-in user
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      // Reference to Firestore
       CollectionReference usersCollection = FirebaseFirestore.instance
           .collection('users');
 
-      // Update or add restaurant offer and seat status data under the user's document
       await usersCollection.doc(user.uid).set({
         'offer_name': _offerNameController.text,
         'offer_price': _offerPriceController.text,
         'seat_status': _seatStatusController.text,
-        'timestamp': FieldValue.serverTimestamp(), // Add timestamp for record
-      }, SetOptions(merge: true)); // merge to avoid overwriting existing data
+        'timestamp': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
 
-      // Clear inputs after posting offer
+      await FirebaseFirestore.instance.collection('offers').add({
+        'name': _offerNameController.text,
+        'price': '৳${_offerPriceController.text}',
+        'imageURL': _imageUrlController.text,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
       _offerNameController.clear();
       _offerPriceController.clear();
       _seatStatusController.clear();
+      _imageUrlController.clear();
 
-      // Provide user feedback
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Offer and Seat Status Updated!')),
       );
@@ -55,6 +58,7 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
     _offerNameController.dispose();
     _offerPriceController.dispose();
     _seatStatusController.dispose();
+    _imageUrlController.dispose();
     super.dispose();
   }
 
@@ -73,13 +77,20 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
             appBar: AppBar(
               title: const Text('Restaurant Dashboard'),
               centerTitle: true,
-              backgroundColor: Colors.deepOrangeAccent,
+              backgroundColor: const Color.fromARGB(255, 191, 160, 244),
             ),
             body: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const SizedBox(height: 32),
+                  const Center(
+                    child: CircleAvatar(
+                      radius: 60,
+                      backgroundImage: AssetImage('assets/images.jpg'),
+                    ),
+                  ),
                   const Text(
                     'Post Offer',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -102,12 +113,25 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
                     ),
                   ),
                   const SizedBox(height: 12),
+                  TextField(
+                    controller: _imageUrlController,
+                    decoration: const InputDecoration(
+                      labelText: 'Image URL',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _postOffer, // Call the post offer function
+                      onPressed: _postOffer,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.deepOrangeAccent,
+                        backgroundColor: const Color.fromARGB(
+                          255,
+                          191,
+                          160,
+                          244,
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                       child: const Text('Post Offer'),
@@ -130,10 +154,14 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed:
-                          _postOffer, // Same function to update seat status
+                      onPressed: _postOffer,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.deepOrangeAccent,
+                        backgroundColor: const Color.fromARGB(
+                          255,
+                          191,
+                          160,
+                          244,
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                       child: const Text('Update Seat Status'),

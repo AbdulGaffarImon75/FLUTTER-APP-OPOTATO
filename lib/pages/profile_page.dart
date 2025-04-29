@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/pages/profile_edit_page.dart';
 import 'bottom_nav_bar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Import this for Firestore
-
+import 'package:flutter_application_1/pages/home_page.dart';
 import 'package:flutter_application_1/user_service.dart'; // Import UserService
 
 class ProfilePage extends StatelessWidget {
@@ -18,7 +18,10 @@ class ProfilePage extends StatelessWidget {
     if (user == null) {
       Future.delayed(
         Duration.zero,
-        () => Navigator.pushReplacementNamed(context, '/login'),
+        () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const HomePage()),
+        ),
       );
       return Scaffold(); // Return empty scaffold if user is not logged in
     }
@@ -95,7 +98,7 @@ class ProfilePage extends StatelessWidget {
                         const Center(
                           child: CircleAvatar(
                             radius: 50,
-                            child: Icon(Icons.person, size: 50),
+                            backgroundImage: AssetImage('assets/images.jpg'),
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -224,7 +227,10 @@ class ProfilePage extends StatelessWidget {
   // Logout function
   Future<void> _logout(BuildContext context) async {
     await FirebaseAuth.instance.signOut(); // Sign out the user
-    Navigator.pushReplacementNamed(context, '/login'); // Redirect to login page
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const HomePage()),
+    ); // Redirect to login page
   }
 
   void openPage(BuildContext context) {

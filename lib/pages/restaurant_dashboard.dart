@@ -17,30 +17,40 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
   final TextEditingController _seatStatusController = TextEditingController();
   final TextEditingController _imageUrlController = TextEditingController();
 
-  Future<bool> _checkIfLoggedIn() async {
-    User? user = FirebaseAuth.instance.currentUser;
-    return user != null;
+  String? profileImageUrl;
+  String? restaurantName;
+
+  Future<void> _fetchUserData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
+      final data = doc.data();
+      if (data != null) {
+        setState(() {
+          profileImageUrl = data['profile_image_url'];
+          restaurantName = data['name'];
+        });
+      }
+    }
   }
 
   Future<void> _postOffer() async {
-    User? user = FirebaseAuth.instance.currentUser;
+    final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      CollectionReference usersCollection = FirebaseFirestore.instance
-          .collection('users');
-
-      await usersCollection.doc(user.uid).set({
-        'offer_name': _offerNameController.text,
-        'offer_price': _offerPriceController.text,
-        'seat_status': _seatStatusController.text,
-        'timestamp': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-
-      await FirebaseFirestore.instance.collection('offers').add({
+      final offerData = {
         'name': _offerNameController.text,
         'price': '৳${_offerPriceController.text}',
         'imageURL': _imageUrlController.text,
         'timestamp': FieldValue.serverTimestamp(),
-      });
+        'posted_by': restaurantName ?? '',
+        'profile_image_url': profileImageUrl ?? '',
+      };
+
+      await FirebaseFirestore.instance.collection('offers').add(offerData);
 
       _offerNameController.clear();
       _offerPriceController.clear();
@@ -48,9 +58,15 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
       _imageUrlController.clear();
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Offer and Seat Status Updated!')),
+        const SnackBar(content: Text('Offer posted successfully!')),
       );
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData();
   }
 
   @override
@@ -64,128 +80,103 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: _checkIfLoggedIn(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        } else if (snapshot.hasData && snapshot.data == true) {
-          return Scaffold(
-            backgroundColor: Colors.white,
-            appBar: AppBar(
-              title: const Text('Restaurant Dashboard'),
-              centerTitle: true,
-              backgroundColor: const Color.fromARGB(255, 191, 160, 244),
-            ),
-            body: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 32),
-                  const Center(
-                    child: CircleAvatar(
-                      radius: 60,
-                      backgroundImage: AssetImage('assets/images.jpg'),
-                    ),
-                  ),
-                  const Text(
-                    'Post Offer',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _offerNameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Offer Name',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _offerPriceController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Price',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _imageUrlController,
-                    decoration: const InputDecoration(
-                      labelText: 'Image URL',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _postOffer,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromARGB(
-                          255,
-                          191,
-                          160,
-                          244,
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text('Post Offer'),
-                    ),
-                  ),
-                  const Divider(height: 40, thickness: 1.5),
-                  const Text(
-                    'Update Seat Status',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _seatStatusController,
-                    decoration: const InputDecoration(
-                      labelText: 'Seat Status (e.g. Available, Full)',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _postOffer,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromARGB(
-                          255,
-                          191,
-                          160,
-                          244,
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text('Update Seat Status'),
-                    ),
-                  ),
-                  const SizedBox(height: 290),
-                  const Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: BottomNavBar(activeIndex: 0),
-                  ),
-                ],
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('Restaurant Dashboard'),
+        centerTitle: true,
+        backgroundColor: const Color.fromARGB(255, 191, 160, 244),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 32),
+            Center(
+              child: CircleAvatar(
+                radius: 60,
+                backgroundImage:
+                    profileImageUrl != null && profileImageUrl!.isNotEmpty
+                        ? NetworkImage(profileImageUrl!)
+                        : null,
+                child:
+                    (profileImageUrl == null || profileImageUrl!.isEmpty)
+                        ? const Icon(Icons.person, size: 50)
+                        : null,
               ),
             ),
-          );
-        } else {
-          return const Scaffold(
-            body: Center(
-              child: Text('You must be logged in to access this page.'),
+            const SizedBox(height: 12),
+            if (restaurantName != null)
+              Center(
+                child: Text(
+                  restaurantName!,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            const SizedBox(height: 24),
+            const Text(
+              'Post Offer',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-          );
-        }
-      },
+            const SizedBox(height: 12),
+            TextField(
+              controller: _offerNameController,
+              decoration: const InputDecoration(
+                labelText: 'Offer Name',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _offerPriceController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Price',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _imageUrlController,
+              decoration: const InputDecoration(
+                labelText: 'Image URL',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Post Seat Status (Optional)',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _seatStatusController,
+              decoration: const InputDecoration(
+                labelText: 'Seat Status (e.g. Available, Full)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _postOffer,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 191, 160, 244),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                child: const Text('Submit'),
+              ),
+            ),
+            const SizedBox(height: 80),
+          ],
+        ),
+      ),
+      bottomNavigationBar: const BottomNavBar(activeIndex: 0),
     );
   }
 }

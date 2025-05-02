@@ -2,42 +2,34 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/pages/profile_edit_page.dart';
 import 'bottom_nav_bar.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // Import this for Firestore
-import 'package:flutter_application_1/pages/home_page.dart';
-import 'package:flutter_application_1/user_service.dart'; // Import UserService
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_application_1/pages/login_page.dart';
+import 'package:flutter_application_1/user_service.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Fetch the current user
     User? user = FirebaseAuth.instance.currentUser;
 
-    // If the user is not logged in, navigate to login page
     if (user == null) {
       Future.delayed(
         Duration.zero,
-        () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const HomePage()),
-        ),
+        () => Navigator.pushReplacementNamed(context, '/login'),
       );
-      return Scaffold(); // Return empty scaffold if user is not logged in
+      return const Scaffold();
     }
 
-    // Fetch user details from Firestore using UserService
     return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-      future: UserService().getUser(user.uid), // Fetch the user document
+      future: UserService().getUser(user.uid),
       builder: (
         context,
         AsyncSnapshot<DocumentSnapshot<Map<String, dynamic>>> snapshot,
       ) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ), // Loading indicator
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
           );
         }
 
@@ -48,14 +40,16 @@ class ProfilePage extends StatelessWidget {
         }
 
         if (!snapshot.hasData || !snapshot.data!.exists) {
-          return Scaffold(body: Center(child: Text('User data not found')));
+          return const Scaffold(
+            body: Center(child: Text('User data not found')),
+          );
         }
 
-        // Extract user details from Firestore document
         var userData = snapshot.data!.data()!;
         String displayName = userData['name'] ?? "No Name";
         String email = user.email ?? "No Email";
         String phoneNumber = userData['phone'] ?? "No Phone Number";
+        String? profileImageUrl = userData['profile_image_url'];
 
         return Scaffold(
           backgroundColor: Colors.white,
@@ -95,10 +89,19 @@ class ProfilePage extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 32),
-                        const Center(
+                        Center(
                           child: CircleAvatar(
                             radius: 50,
-                            backgroundImage: AssetImage('assets/images.jpg'),
+                            backgroundImage:
+                                profileImageUrl != null &&
+                                        profileImageUrl.isNotEmpty
+                                    ? NetworkImage(profileImageUrl)
+                                    : null,
+                            child:
+                                (profileImageUrl == null ||
+                                        profileImageUrl.isEmpty)
+                                    ? const Icon(Icons.person, size: 50)
+                                    : null,
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -216,21 +219,17 @@ class ProfilePage extends StatelessWidget {
           ),
         ),
         trailing: const Icon(Icons.chevron_right),
-        onTap:
-            isLogout
-                ? () => _logout(context)
-                : () {}, // Now you can use context here
+        onTap: isLogout ? () => _logout(context) : () {},
       ),
     );
   }
 
-  // Logout function
   Future<void> _logout(BuildContext context) async {
-    await FirebaseAuth.instance.signOut(); // Sign out the user
+    await FirebaseAuth.instance.signOut();
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const HomePage()),
-    ); // Redirect to login page
+      MaterialPageRoute(builder: (context) => const LoginPage()),
+    );
   }
 
   void openPage(BuildContext context) {

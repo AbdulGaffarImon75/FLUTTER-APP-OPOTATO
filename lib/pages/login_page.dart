@@ -189,7 +189,7 @@ class _LoginPageState extends State<LoginPage> {
                   style: TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(height: 16),
               Center(
                 child: TextButton(
                   onPressed:
@@ -215,17 +215,11 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-              const Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: BottomNavBar(activeIndex: 4),
-              ),
             ],
           ),
         ),
       ),
+      bottomNavigationBar: const BottomNavBar(activeIndex: 4),
     );
   }
 }

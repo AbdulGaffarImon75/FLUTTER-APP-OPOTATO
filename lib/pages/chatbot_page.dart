@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'chatbot_service.dart'; // Make sure this matches the file name of your ChatBotService
+import 'chatbot_service.dart';
+import 'bottom_nav_bar.dart';
 
 class ChatbotPage extends StatefulWidget {
   const ChatbotPage({super.key});
@@ -10,8 +11,7 @@ class ChatbotPage extends StatefulWidget {
 
 class _ChatbotPageState extends State<ChatbotPage> {
   final TextEditingController _controller = TextEditingController();
-  final List<Map<String, String>> _messages =
-      []; // {role: 'user' or 'bot', text: ...}
+  final List<Map<String, String>> _messages = [];
   bool _isLoading = false;
 
   void _sendMessage() async {
@@ -35,7 +35,6 @@ class _ChatbotPageState extends State<ChatbotPage> {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      // Wraps entire screen
       child: Scaffold(
         appBar: AppBar(title: const Text("Ask AI Assistant")),
         body: Column(
@@ -92,12 +91,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
                 child: CircularProgressIndicator(),
               ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(
-                12,
-                8,
-                12,
-                20,
-              ), // Added bottom padding
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 20),
               child: Row(
                 children: [
                   Expanded(
@@ -119,6 +113,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
             ),
           ],
         ),
+        bottomNavigationBar: const BottomNavBar(activeIndex: 0),
       ),
     );
   }

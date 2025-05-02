@@ -3,19 +3,19 @@ import 'package:flutter/material.dart';
 import 'login_page.dart';
 import 'home_page.dart';
 import 'profile_page.dart';
-import 'restaurant_dashboard.dart'; // Import the restaurant dashboard page\
+import 'restaurant_dashboard.dart';
 import 'seat_booking.dart';
+import 'chatbot_page.dart'; // ✅ ChatBot screen
 
 class BottomNavBar extends StatelessWidget {
   final int activeIndex;
 
   const BottomNavBar({super.key, this.activeIndex = 0});
 
-  // Function to check if the user is logged in
+  // Check if user is logged in
   Future<bool> _isUserLoggedIn() async {
     User? user = FirebaseAuth.instance.currentUser;
-    return user !=
-        null; // Returns true if the user is logged in, false otherwise
+    return user != null;
   }
 
   @override
@@ -28,73 +28,77 @@ class BottomNavBar extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
+            // 🍔 Restaurant Dashboard
             IconButton(
               onPressed: () async {
-                // Check if the user is logged in
                 bool loggedIn = await _isUserLoggedIn();
-
                 if (loggedIn) {
-                  // If logged in, navigate to the restaurant dashboard
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const RestaurantDashboardPage(),
+                      builder: (_) => const RestaurantDashboardPage(),
                     ),
                   );
                 } else {
-                  // Handle not logged-in state (you can show a login prompt or other UI)
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const LoginPage()),
+                    MaterialPageRoute(builder: (_) => const LoginPage()),
                   );
                 }
               },
               icon: const Icon(Icons.fastfood),
               color: activeIndex == 0 ? Colors.purple : Colors.grey,
             ),
+
+            // 🎟️ Seat Booking
             IconButton(
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const SeatBookingPage(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const SeatBookingPage()),
                 );
               },
               icon: const Icon(Icons.event_seat),
               color: activeIndex == 1 ? Colors.purple : Colors.grey,
             ),
+
+            // 🏠 Home
             IconButton(
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const HomePage()),
+                  MaterialPageRoute(builder: (_) => const HomePage()),
                 );
               },
               icon: const Icon(Icons.home_filled),
               color: activeIndex == 2 ? Colors.purple : Colors.grey,
             ),
+
+            // 💬 AI Chatbot
             IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.notifications),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ChatbotPage()),
+                );
+              },
+              icon: const Icon(Icons.chat),
               color: activeIndex == 3 ? Colors.purple : Colors.grey,
             ),
+
+            // 👤 Profile
             IconButton(
               onPressed: () async {
-                // Check if the user is logged in
                 User? user = FirebaseAuth.instance.currentUser;
-
                 if (user != null) {
-                  // If logged in, navigate to the profile page
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => ProfilePage()),
+                    MaterialPageRoute(builder: (_) => ProfilePage()),
                   );
                 } else {
-                  // If not logged in, navigate to the login page
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const LoginPage()),
+                    MaterialPageRoute(builder: (_) => const LoginPage()),
                   );
                 }
               },

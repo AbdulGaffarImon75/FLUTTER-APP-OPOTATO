@@ -8,6 +8,7 @@ import 'admin_dashboard.dart';
 import 'seat_booking.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'chatbot_page.dart';
+import 'notification_page.dart';
 
 class BottomNavBar extends StatefulWidget {
   final int activeIndex;
@@ -148,7 +149,14 @@ class _BottomNavBarState extends State<BottomNavBar> {
               color: widget.activeIndex == 2 ? Colors.purple : Colors.grey,
             ),
             IconButton(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const NotificationPage(),
+                  ),
+                );
+              },
               icon: const Icon(Icons.notifications),
               color: widget.activeIndex == 3 ? Colors.purple : Colors.grey,
             ),

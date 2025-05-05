@@ -110,7 +110,11 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> fetchBillboard() async {
     final snapshot =
-        await FirebaseFirestore.instance.collection('offers').limit(1).get();
+        await FirebaseFirestore.instance
+            .collection('offers')
+            .orderBy('timestamp', descending: true)
+            .limit(1)
+            .get();
     if (snapshot.docs.isNotEmpty) {
       final data = snapshot.docs.first.data() as Map<String, dynamic>? ?? {};
       setState(() {

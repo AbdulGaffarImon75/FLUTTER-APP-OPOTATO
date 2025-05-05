@@ -9,6 +9,7 @@ import 'seat_booking.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'chatbot_page.dart';
 import 'notification_page.dart';
+import 'restaurant_notification.dart';
 
 class BottomNavBar extends StatefulWidget {
   final int activeIndex;
@@ -81,7 +82,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
     if (userType == 'customer') {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => const ChatbotPage()),
+        MaterialPageRoute(builder: (context) => ChatbotPage()),
       );
     } else if (userType == 'restaurant') {
       Navigator.push(
@@ -93,6 +94,31 @@ class _BottomNavBarState extends State<BottomNavBar> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('User type unknown or missing')),
+      );
+    }
+  }
+
+  void _handleNotificationTap(BuildContext context) {
+    if (_user == null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+      );
+    } else if (_userType == 'customer') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const NotificationPage()),
+      );
+    } else if (_userType == 'restaurant') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const RestaurantNotificationPage()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Notification not available for this user type.'),
+        ),
       );
     }
   }
@@ -149,14 +175,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
               color: widget.activeIndex == 2 ? Colors.purple : Colors.grey,
             ),
             IconButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const NotificationPage(),
-                  ),
-                );
-              },
+              onPressed: () => _handleNotificationTap(context),
               icon: const Icon(Icons.notifications),
               color: widget.activeIndex == 3 ? Colors.purple : Colors.grey,
             ),

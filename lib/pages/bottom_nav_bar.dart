@@ -9,15 +9,52 @@ import 'seat_booking.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'chatbot_page.dart';
 
-class BottomNavBar extends StatelessWidget {
+class BottomNavBar extends StatefulWidget {
   final int activeIndex;
   static const String adminUID = '9augevirHjVzo8izlXsJba568782';
 
   const BottomNavBar({super.key, this.activeIndex = 0});
 
+  @override
+  State<BottomNavBar> createState() => _BottomNavBarState();
+}
+
+class _BottomNavBarState extends State<BottomNavBar> {
+  String? _userType;
+  User? _user;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserType();
+  }
+
+  Future<void> _loadUserType() async {
+    _user = FirebaseAuth.instance.currentUser;
+    if (_user == null) {
+      setState(() {
+        _userType = 'guest';
+      });
+      return;
+    }
+    if (_user!.uid == BottomNavBar.adminUID) {
+      setState(() {
+        _userType = 'admin';
+      });
+      return;
+    }
+    final doc =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(_user!.uid)
+            .get();
+    setState(() {
+      _userType = doc.data()?['user_type'] ?? 'unknown';
+    });
+  }
+
   Future<void> _handleFastFoodTapOptimized(BuildContext context) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
+    if (_user == null) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const LoginPage()),
@@ -25,7 +62,7 @@ class BottomNavBar extends StatelessWidget {
       return;
     }
 
-    if (user.uid == adminUID) {
+    if (_user!.uid == BottomNavBar.adminUID) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const AdminDashboardPage()),
@@ -36,7 +73,7 @@ class BottomNavBar extends StatelessWidget {
     final doc =
         await FirebaseFirestore.instance
             .collection('users')
-            .doc(user.uid)
+            .doc(_user!.uid)
             .get();
     final userType = doc.data()?['user_type'];
 
@@ -61,6 +98,19 @@ class BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    IconData getDynamicIcon() {
+      switch (_userType) {
+        case 'restaurant':
+          return Icons.fastfood;
+        case 'admin':
+          return Icons.admin_panel_settings;
+        case 'customer':
+        case 'guest':
+        default:
+          return Icons.chat;
+      }
+    }
+
     return BottomAppBar(
       elevation: 8,
       color: Colors.white,
@@ -69,11 +119,12 @@ class BottomNavBar extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            IconButton(
-              onPressed: () => _handleFastFoodTapOptimized(context),
-              icon: const Icon(Icons.fastfood),
-              color: activeIndex == 0 ? Colors.purple : Colors.grey,
-            ),
+            if (_userType != null)
+              IconButton(
+                onPressed: () => _handleFastFoodTapOptimized(context),
+                icon: Icon(getDynamicIcon()),
+                color: widget.activeIndex == 0 ? Colors.purple : Colors.grey,
+              ),
             IconButton(
               onPressed: () {
                 Navigator.push(
@@ -84,7 +135,7 @@ class BottomNavBar extends StatelessWidget {
                 );
               },
               icon: const Icon(Icons.event_seat),
-              color: activeIndex == 1 ? Colors.purple : Colors.grey,
+              color: widget.activeIndex == 1 ? Colors.purple : Colors.grey,
             ),
             IconButton(
               onPressed: () {
@@ -94,12 +145,12 @@ class BottomNavBar extends StatelessWidget {
                 );
               },
               icon: const Icon(Icons.home_filled),
-              color: activeIndex == 2 ? Colors.purple : Colors.grey,
+              color: widget.activeIndex == 2 ? Colors.purple : Colors.grey,
             ),
             IconButton(
               onPressed: () {},
               icon: const Icon(Icons.notifications),
-              color: activeIndex == 3 ? Colors.purple : Colors.grey,
+              color: widget.activeIndex == 3 ? Colors.purple : Colors.grey,
             ),
             IconButton(
               onPressed: () async {
@@ -118,7 +169,7 @@ class BottomNavBar extends StatelessWidget {
                 }
               },
               icon: const Icon(Icons.person),
-              color: activeIndex == 4 ? Colors.purple : Colors.grey,
+              color: widget.activeIndex == 4 ? Colors.purple : Colors.grey,
             ),
           ],
         ),

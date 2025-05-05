@@ -37,7 +37,10 @@ class _OffersPageState extends State<OffersPage> {
 
   Future<void> fetchOffers() async {
     final snapshot =
-        await FirebaseFirestore.instance.collection('offers').get();
+        await FirebaseFirestore.instance
+            .collection('offers')
+            .orderBy('timestamp', descending: true)
+            .get();
     setState(() {
       _offers = snapshot.docs.map((doc) => Offer.fromFirestore(doc)).toList();
     });

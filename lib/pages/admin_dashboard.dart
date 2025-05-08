@@ -135,7 +135,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       child: Text(
                         'Welcome, Admin!',
                         style: TextStyle(
-                          fontSize: 22, // slightly larger
+                          fontSize: 22,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

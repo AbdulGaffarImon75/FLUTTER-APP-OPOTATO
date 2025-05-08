@@ -17,3 +17,17 @@ class ChatbotQA {
     );
   }
 }
+
+class SmallTalk {
+  final List<String> triggers;
+  final List<String> responses;
+
+  SmallTalk({required this.triggers, required this.responses});
+
+  factory SmallTalk.fromFirestore(Map<String, dynamic> data) {
+    return SmallTalk(
+      triggers: List<String>.from(data['triggers'] ?? []),
+      responses: List<String>.from(data['responses'] ?? []),
+    );
+  }
+}

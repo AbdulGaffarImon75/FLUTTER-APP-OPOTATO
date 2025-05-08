@@ -1,5 +1,9 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:string_similarity/string_similarity.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'bottom_nav_bar.dart';
 
 class ChatbotPage extends StatefulWidget {
   @override
@@ -19,34 +23,66 @@ class _ChatbotPageState extends State<ChatbotPage> {
       _controller.clear();
     });
 
-    final botReply = await getChatbotAnswer(userMessage);
+    final user = FirebaseAuth.instance.currentUser;
+    final userId = user?.uid ?? 'guest';
+    final userProfile = await fetchUserProfile(userId);
+    final userName = userProfile?['name'] ?? 'there';
+
+    final botReply = await getChatbotAnswer(userMessage, userName);
+
+    await FirebaseFirestore.instance.collection('chat_history').add({
+      'userId': userId,
+      'message': userMessage,
+      'response': botReply,
+      'timestamp': Timestamp.now(),
+    });
 
     setState(() {
       _messages.add({"role": "bot", "text": botReply});
     });
   }
 
-  Future<String> getChatbotAnswer(String userMessage) async {
-    final querySnapshot =
-        await FirebaseFirestore.instance.collection('faq_chatbot').get();
+  Future<Map<String, dynamic>?> fetchUserProfile(String uid) async {
+    final doc =
+        await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    return doc.exists ? doc.data() : null;
+  }
 
-    for (var doc in querySnapshot.docs) {
+  Future<String> getChatbotAnswer(String userMessage, String userName) async {
+    final msg = userMessage.toLowerCase();
+
+    final smalltalkSnapshot =
+        await FirebaseFirestore.instance.collection('smalltalk_chatbot').get();
+
+    for (var doc in smalltalkSnapshot.docs) {
       final data = doc.data();
-      final keywords = List<String>.from(data['keywords'] ?? []);
-      print("🔥 Loaded keywords: $keywords from ${data['question']}");
+      final triggers = List<String>.from(data['triggers'] ?? []);
+      final responses = List<String>.from(data['responses'] ?? []);
 
-      for (var keyword in keywords) {
-        final keywordPattern = RegExp(
-          '\\b${RegExp.escape(keyword)}\\b',
-          caseSensitive: false,
-        );
-        if (keywordPattern.hasMatch(userMessage)) {
-          return data['answer'];
+      for (var trigger in triggers) {
+        if (msg.similarityTo(trigger.toLowerCase()) > 0.6) {
+          return responses.isNotEmpty
+              ? "${responses[Random().nextInt(responses.length)]} $userName!"
+              : "Hi $userName!";
         }
       }
     }
 
-    return "Sorry, I couldn't find an answer. Please try rephrasing.";
+    final faqSnapshot =
+        await FirebaseFirestore.instance.collection('faq_chatbot').get();
+
+    for (var doc in faqSnapshot.docs) {
+      final data = doc.data();
+      final keywords = List<String>.from(data['keywords'] ?? []);
+
+      for (var keyword in keywords) {
+        if (msg.similarityTo(keyword.toLowerCase()) > 0.6) {
+          return data['answer'] ?? "";
+        }
+      }
+    }
+
+    return "Sorry, I didn't understand that. You can ask about booking, food, or our location!";
   }
 
   @override
@@ -84,12 +120,20 @@ class _ChatbotPageState extends State<ChatbotPage> {
                 Expanded(
                   child: TextField(
                     controller: _controller,
-                    decoration: InputDecoration(hintText: "Ask me anything..."),
+                    decoration: InputDecoration(
+                      hintText: " Ask me anything...",
+                    ),
                   ),
                 ),
                 IconButton(icon: Icon(Icons.send), onPressed: _sendMessage),
               ],
             ),
+          ),
+          const Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: BottomNavBar(activeIndex: 4),
           ),
         ],
       ),

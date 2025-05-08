@@ -41,6 +41,7 @@ dependencies:
   firebase_database: ^11.3.5
   firebase_auth: ^5.5.2
   cloud_firestore: ^5.6.6
+  string_similarity: ^2.0.0
   
 
 dev_dependencies:

@@ -110,7 +110,16 @@ class _NotificationPageState extends State<NotificationPage> {
                                 width: 60,
                                 height: 60,
                                 fit: BoxFit.cover,
+                                errorBuilder:
+                                    (context, error, stackTrace) =>
+                                        const Icon(Icons.broken_image),
                               )
+                              // ? Image.network(
+                              //   notification['imageURL'],
+                              //   width: 60,
+                              //   height: 60,
+                              //   fit: BoxFit.cover,
+                              // )
                               : null,
                     ),
                   );

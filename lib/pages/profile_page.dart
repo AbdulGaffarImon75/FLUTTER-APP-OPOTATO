@@ -1,10 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/pages/profile_edit_page.dart';
+import 'package:O_potato/pages/profile_edit_page.dart';
 import 'bottom_nav_bar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_application_1/pages/login_page.dart';
-import 'package:flutter_application_1/user_service.dart';
+import 'package:O_potato/pages/login_page.dart';
+import 'package:O_potato/user_service.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});

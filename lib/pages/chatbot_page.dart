@@ -6,8 +6,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'bottom_nav_bar.dart';
 
 class ChatbotPage extends StatefulWidget {
-  const ChatbotPage({super.key});
-
   @override
   _ChatbotPageState createState() => _ChatbotPageState();
 }

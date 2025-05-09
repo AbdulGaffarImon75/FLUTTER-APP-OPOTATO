@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/pages/bottom_nav_bar.dart';
+import 'package:O_potato/pages/bottom_nav_bar.dart';
 
 class CheckInPage extends StatelessWidget {
   const CheckInPage({super.key});

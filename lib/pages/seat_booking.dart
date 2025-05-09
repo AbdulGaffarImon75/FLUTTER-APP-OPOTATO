@@ -246,7 +246,7 @@ class _SeatBookingPageState extends State<SeatBookingPage> {
           ],
         ),
       ),
-      bottomNavigationBar: const BottomNavBar(activeIndex: 2),
+      bottomNavigationBar: const BottomNavBar(activeIndex: 1),
     );
   }
 

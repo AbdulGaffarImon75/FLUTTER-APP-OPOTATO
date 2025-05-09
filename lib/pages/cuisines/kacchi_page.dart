@@ -15,7 +15,7 @@ class KacchiPage extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.asset('assets/kacchi.jpeg'),
+              child: Image.asset('assets/kacchi.jpg'),
             ),
             const SizedBox(height: 20),
             const Text(

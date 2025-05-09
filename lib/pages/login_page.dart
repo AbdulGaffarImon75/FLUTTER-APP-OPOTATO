@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/pages/signup_page.dart';
-import 'package:flutter_application_1/auth_service.dart';
+import 'package:O_potato/pages/signup_page.dart';
+import 'package:O_potato/auth_service.dart';
 import 'bottom_nav_bar.dart';
 import 'home_page.dart';
 import 'profile_page.dart';

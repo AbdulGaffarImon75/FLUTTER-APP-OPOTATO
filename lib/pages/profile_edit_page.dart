@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/user_service.dart';
-import 'package:flutter_application_1/auth_service.dart';
+import 'package:O_potato/user_service.dart';
+import 'package:O_potato/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'bottom_nav_bar.dart';
 

@@ -147,14 +147,9 @@ class _ChatbotPageState extends State<ChatbotPage> {
               ],
             ),
           ),
-          const Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: BottomNavBar(activeIndex: 4),
-          ),
         ],
       ),
+      bottomNavigationBar: BottomNavBar(activeIndex: 4),
     );
   }
 }

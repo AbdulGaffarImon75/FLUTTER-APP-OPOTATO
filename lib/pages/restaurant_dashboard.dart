@@ -15,7 +15,7 @@ class RestaurantDashboardPage extends StatefulWidget {
 class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
   final TextEditingController _offerNameController = TextEditingController();
   final TextEditingController _offerPriceController = TextEditingController();
-  final TextEditingController _seatStatusController = TextEditingController();
+  // final TextEditingController _seatStatusController = TextEditingController();
   final TextEditingController _imageUrlController = TextEditingController();
 
   final TextEditingController _comboTitleController = TextEditingController();
@@ -23,12 +23,18 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
   final TextEditingController _comboImageUrlController =
       TextEditingController();
 
+  final TextEditingController _add2Controller = TextEditingController();
+  final TextEditingController _add4Controller = TextEditingController();
+  final TextEditingController _add8Controller = TextEditingController();
+  final TextEditingController _add12Controller = TextEditingController();
+
   String? profileImageUrl;
   String? restaurantName;
   String? restaurantUID;
 
-  int totalSeats = 30;
+  int totalSeats = 76;
   int availableSeats = 0;
+  int twoSeat = 0, fourSeat = 0, eightSeat = 0, twelveSeat = 0;
   List<DocumentSnapshot> _restaurantOffers = [];
   List<DocumentSnapshot> _restaurantCombos = [];
 
@@ -42,14 +48,12 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       restaurantUID = user.uid;
-
       final userDoc =
           await FirebaseFirestore.instance
               .collection('users')
               .doc(user.uid)
               .get();
       final userData = userDoc.data();
-
       if (userData != null) {
         restaurantName = userData['name'];
         profileImageUrl = userData['profile_image_url'];
@@ -62,13 +66,20 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
         if (!restSnapshot.exists) {
           await restDoc.set({
             'name': restaurantName,
-            'available seats': 0,
+            'available seats': totalSeats,
             'total seats': totalSeats,
+            '2_people_seat': 12,
+            '4_people_seat': 16,
+            '8_people_seat': 24,
+            '12_people_seat': 24,
           });
         } else {
           final data = restSnapshot.data()!;
           availableSeats = data['available seats'] ?? 0;
-          totalSeats = data['total seats'] ?? 30;
+          twoSeat = data['2_people_seat'] ?? 0;
+          fourSeat = data['4_people_seat'] ?? 0;
+          eightSeat = data['8_people_seat'] ?? 0;
+          twelveSeat = data['12_people_seat'] ?? 0;
         }
 
         await _fetchRestaurantOffers();
@@ -109,7 +120,7 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
     if (user != null) {
       final offerData = {
         'name': _offerNameController.text,
-        'price': '৳${_offerPriceController.text}',
+        'price': 'à§³${_offerPriceController.text}',
         'imageURL': _imageUrlController.text,
         'timestamp': FieldValue.serverTimestamp(),
         'posted_by': restaurantName ?? '',
@@ -147,11 +158,19 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
   }
 
   Future<void> _updateSeats() async {
-    final input = int.tryParse(_seatStatusController.text.trim());
-    if (input == null) return;
+    int add2 = int.tryParse(_add2Controller.text.trim()) ?? 0;
+    int add4 = int.tryParse(_add4Controller.text.trim()) ?? 0;
+    int add8 = int.tryParse(_add8Controller.text.trim()) ?? 0;
+    int add12 = int.tryParse(_add12Controller.text.trim()) ?? 0;
 
-    final newSeats = availableSeats + input;
-    if (newSeats > totalSeats) {
+    int new2 = twoSeat + add2;
+    int new4 = fourSeat + add4;
+    int new8 = eightSeat + add8;
+    int new12 = twelveSeat + add12;
+
+    int newAvailable = new2 + new4 + new8 + new12;
+
+    if (newAvailable > totalSeats) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Sorry! Over your capacity!')),
       );
@@ -161,14 +180,30 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
     await FirebaseFirestore.instance
         .collection('rest')
         .doc(restaurantUID)
-        .update({'available seats': newSeats});
-    setState(() => availableSeats = newSeats);
-    _seatStatusController.clear();
-    if (availableSeats > 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Seats updated successfully')),
-      );
-    }
+        .update({
+          '2_people_seat': new2,
+          '4_people_seat': new4,
+          '8_people_seat': new8,
+          '12_people_seat': new12,
+          'available seats': newAvailable,
+        });
+
+    setState(() {
+      twoSeat = new2;
+      fourSeat = new4;
+      eightSeat = new8;
+      twelveSeat = new12;
+      availableSeats = newAvailable;
+    });
+
+    _add2Controller.clear();
+    _add4Controller.clear();
+    _add8Controller.clear();
+    _add12Controller.clear();
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Seats updated successfully')));
   }
 
   Future<void> _deleteOffer(String docId) async {
@@ -307,21 +342,20 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-            TextField(
-              controller: _seatStatusController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Add Seats',
-                border: OutlineInputBorder(),
-              ),
-            ),
+            _buildSeatField('Add 2-Person Seats', _add2Controller),
+            const SizedBox(height: 12),
+            _buildSeatField('Add 4-Person Seats', _add4Controller),
+            const SizedBox(height: 12),
+            _buildSeatField('Add 8-Person Seats', _add8Controller),
+            const SizedBox(height: 12),
+            _buildSeatField('Add 12-Person Seats', _add12Controller),
             const SizedBox(height: 12),
             ElevatedButton(
               onPressed: _updateSeats,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color.fromARGB(255, 191, 160, 244),
-                padding: EdgeInsets.symmetric(vertical: 14),
-                minimumSize: Size(double.infinity, 0),
+                backgroundColor: const Color.fromARGB(255, 191, 160, 244),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                minimumSize: const Size(double.infinity, 0),
               ),
               child: const Text('UPDATE'),
             ),
@@ -332,6 +366,10 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
             ),
             Text('Available Seats: $availableSeats'),
             Text('Total Seats: $totalSeats'),
+            Text('2-Person Seats: $twoSeat'),
+            Text('4-Person Seats: $fourSeat'),
+            Text('8-Person Seats: $eightSeat'),
+            Text('12-Person Seats: $twelveSeat'),
             const SizedBox(height: 24),
             const Text(
               'Offers',
@@ -382,4 +420,15 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
       ),
     );
   }
+}
+
+Widget _buildSeatField(String label, TextEditingController controller) {
+  return TextField(
+    controller: controller,
+    keyboardType: TextInputType.number,
+    decoration: InputDecoration(
+      labelText: label,
+      border: const OutlineInputBorder(),
+    ),
+  );
 }

@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:O_potato/pages/bottom_nav_bar.dart';
 
 class SeatBookingPage extends StatefulWidget {
   const SeatBookingPage({super.key});
@@ -9,201 +11,278 @@ class SeatBookingPage extends StatefulWidget {
 }
 
 class _SeatBookingPageState extends State<SeatBookingPage> {
-  Map<String, bool> seats = {};
-  List<String> selectedSeats = [];
-  bool bookingConfirmed = false; // to block after booking
+  String? userType;
+  String? selectedRestaurant;
+  Map<String, dynamic>? selectedRestaurantData;
+
+  int coupleTable = 0;
+  int tableForFour = 0;
+  int groupTable = 0;
+  int familyTable = 0;
+
+  List<String> restaurantNames = [];
+  Map<String, String> restaurantDocIds = {}; // name -> uid
 
   @override
   void initState() {
     super.initState();
-    fetchSeats();
+    _checkUserType();
   }
 
-  Future<void> fetchSeats() async {
-    final docSnapshot =
-        await FirebaseFirestore.instance
-            .collection('res001')
-            .doc('seats')
-            .get();
-
-    if (docSnapshot.exists) {
-      final data = docSnapshot.data() as Map<String, dynamic>;
-      setState(() {
-        seats = data.map((key, value) => MapEntry(key, value as bool));
-      });
+  Future<void> _checkUserType() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final userDoc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
+      final data = userDoc.data();
+      if (data != null && data['user_type'] == 'customer') {
+        setState(() => userType = 'customer');
+        _fetchRestaurants();
+      } else {
+        setState(() => userType = 'not_customer');
+      }
     }
   }
 
-  Future<void> confirmBooking() async {
-    if (selectedSeats.isEmpty) return;
+  Future<void> _fetchRestaurants() async {
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .where('user_type', isEqualTo: 'restaurant')
+            .get();
 
-    final updates = {for (var seat in selectedSeats) seat: true};
+    for (var doc in snapshot.docs) {
+      final data = doc.data();
+      restaurantNames.add(data['name']);
+      restaurantDocIds[data['name']] = doc.id;
+    }
+    setState(() {});
+  }
 
-    await FirebaseFirestore.instance
-        .collection('res001')
-        .doc('seats')
-        .update(updates);
+  Future<void> _fetchRestaurantData(String name) async {
+    final restSnapshot =
+        await FirebaseFirestore.instance
+            .collection('rest')
+            .where('name', isEqualTo: name)
+            .get();
+    if (restSnapshot.docs.isNotEmpty) {
+      selectedRestaurantData = restSnapshot.docs.first.data();
+      selectedRestaurant = name;
+      setState(() {});
+    }
+  }
 
-    setState(() {
-      bookingConfirmed = true;
+  int _totalSelectedSeats() {
+    return coupleTable * 2 +
+        tableForFour * 4 +
+        groupTable * 8 +
+        familyTable * 12;
+  }
+
+  bool _canBookTable() {
+    if (selectedRestaurantData == null) return false;
+
+    return coupleTable * 2 <= (selectedRestaurantData!['2_people_seat'] ?? 0) &&
+        tableForFour * 4 <= (selectedRestaurantData!['4_people_seat'] ?? 0) &&
+        groupTable * 8 <= (selectedRestaurantData!['8_people_seat'] ?? 0) &&
+        familyTable * 12 <= (selectedRestaurantData!['12_people_seat'] ?? 0) &&
+        _totalSelectedSeats() <=
+            (selectedRestaurantData!['available seats'] ?? 0);
+  }
+
+  Future<void> _bookTable() async {
+    if (!_canBookTable()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Not enough seats in selected category')),
+      );
+      return;
+    }
+
+    final docId = restaurantDocIds[selectedRestaurant];
+    final restRef = FirebaseFirestore.instance.collection('rest').doc(docId);
+
+    await restRef.update({
+      '2_people_seat': FieldValue.increment(-coupleTable * 2),
+      '4_people_seat': FieldValue.increment(-tableForFour * 4),
+      '8_people_seat': FieldValue.increment(-groupTable * 8),
+      '12_people_seat': FieldValue.increment(-familyTable * 12),
+      'available seats': FieldValue.increment(-_totalSelectedSeats()),
     });
 
-    fetchSeats();
+    setState(() {
+      coupleTable = 0;
+      tableForFour = 0;
+      groupTable = 0;
+      familyTable = 0;
+    });
+
+    await _fetchRestaurantData(selectedRestaurant!);
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Table booked successfully!')));
   }
 
   @override
   Widget build(BuildContext context) {
-    if (seats.isEmpty) {
+    if (userType == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
-    final seatList = seats.entries.toList();
-    List<Widget> tableGroups = [];
-    int index = 0;
-    int tableNumber = 1;
-
-    while (index < seatList.length) {
-      List<Widget> topSeats = [];
-      List<Widget> bottomSeats = [];
-      List<String> currentTableSeats = [];
-
-      // 2 seats on top
-      for (int i = 0; i < 2 && index < seatList.length; i++) {
-        topSeats.add(
-          buildSeatWidget(seatList[index].key, seatList[index].value),
-        );
-        currentTableSeats.add(seatList[index].key);
-        index++;
-      }
-
-      // 2 seats at bottom
-      for (int i = 0; i < 2 && index < seatList.length; i++) {
-        bottomSeats.add(
-          buildSeatWidget(seatList[index].key, seatList[index].value),
-        );
-        currentTableSeats.add(seatList[index].key);
-        index++;
-      }
-
-      tableGroups.add(
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: topSeats,
-            ),
-            const SizedBox(height: 6),
-            buildFancyTableWidget(tableNumber, currentTableSeats),
-            const SizedBox(height: 6),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: bottomSeats,
-            ),
-          ],
-        ),
+    } else if (userType != 'customer') {
+      return const Scaffold(
+        body: Center(child: Text('Only customers can access this page')),
       );
-
-      tableNumber++;
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Fancy Seat Booking')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      appBar: AppBar(
+        title: const Text('Seat Booking'),
+        backgroundColor: const Color.fromARGB(255, 191, 160, 244),
+      ),
+      backgroundColor: Colors.white,
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 80.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children:
-              tableGroups
-                  .map(
-                    (group) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16.0),
-                      child: Center(child: group),
-                    ),
-                  )
-                  .toList(),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Select Restaurant:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    isExpanded: true,
+                    value: selectedRestaurant,
+                    hint: const Text('Choose a restaurant'),
+                    items:
+                        restaurantNames.map((name) {
+                          return DropdownMenuItem(
+                            value: name,
+                            child: Text(name),
+                          );
+                        }).toList(),
+                    onChanged: (value) => _fetchRestaurantData(value!),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            if (selectedRestaurantData != null) ...[
+              Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 3,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Available Seats: ${selectedRestaurantData!['available seats']}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const Divider(height: 24),
+                      _seatSelector(
+                        'Couple Table (2 seats)',
+                        coupleTable,
+                        (v) => setState(() => coupleTable = v),
+                        selectedRestaurantData!['2_people_seat'],
+                      ),
+                      _seatSelector(
+                        'Table for Four (4 seats)',
+                        tableForFour,
+                        (v) => setState(() => tableForFour = v),
+                        selectedRestaurantData!['4_people_seat'],
+                      ),
+                      _seatSelector(
+                        'Group Table (8 seats)',
+                        groupTable,
+                        (v) => setState(() => groupTable = v),
+                        selectedRestaurantData!['8_people_seat'],
+                      ),
+                      _seatSelector(
+                        'Family Table (12 seats)',
+                        familyTable,
+                        (v) => setState(() => familyTable = v),
+                        selectedRestaurantData!['12_people_seat'],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Total Seats Selected: ${_totalSelectedSeats()}',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        onPressed: _bookTable,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color.fromARGB(
+                            255,
+                            191,
+                            160,
+                            244,
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          minimumSize: const Size(double.infinity, 0),
+                        ),
+                        child: const Text('Book Table'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
-      bottomNavigationBar:
-          selectedSeats.isNotEmpty && !bookingConfirmed
-              ? Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: ElevatedButton(
-                  onPressed: confirmBooking,
-                  child: const Text('Confirm Table Booking'),
-                ),
-              )
-              : null,
+      bottomNavigationBar: const BottomNavBar(activeIndex: 2),
     );
   }
 
-  Widget buildSeatWidget(String seatName, bool isBooked) {
-    final isSelected = selectedSeats.contains(seatName);
-
-    return Container(
-      width: 50,
-      height: 50,
-      margin: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color:
-            isBooked ? Colors.red : (isSelected ? Colors.blue : Colors.green),
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: const [
-          BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(2, 2)),
-        ],
-      ),
-      child: const Center(
-        child: Icon(Icons.event_seat, color: Colors.white, size: 24),
-      ),
-    );
-  }
-
-  Widget buildFancyTableWidget(int tableNumber, List<String> seatNames) {
-    bool allSeatsBooked = seatNames.every((seat) => seats[seat] == true);
-    bool anySeatSelected = seatNames.any(
-      (seat) => selectedSeats.contains(seat),
-    );
-
-    return GestureDetector(
-      onTap: () {
-        if (bookingConfirmed) return; // prevent multiple booking
-        if (allSeatsBooked) return; // table already booked
-        if (selectedSeats.isNotEmpty) return; // only allow selecting one table
-
-        setState(() {
-          selectedSeats = seatNames;
-        });
-      },
-      child: Container(
-        width: 120,
-        height: 60,
-        decoration: BoxDecoration(
-          color:
-              allSeatsBooked
-                  ? Colors.grey
-                  : (anySeatSelected ? Colors.blue : Colors.brown.shade600),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 6,
-              offset: Offset(2, 2),
+  Widget _seatSelector(
+    String label,
+    int count,
+    Function(int) onChanged,
+    int maxSeats,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$label (Available: $maxSeats)',
+          style: const TextStyle(fontSize: 14),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.remove),
+              onPressed: count > 0 ? () => onChanged(count - 1) : null,
+            ),
+            Text('$count', style: const TextStyle(fontSize: 16)),
+            IconButton(
+              icon: const Icon(Icons.add),
+              onPressed:
+                  count * int.parse(label.replaceAll(RegExp(r'[^0-9]'), '')) <
+                          maxSeats
+                      ? () => onChanged(count + 1)
+                      : null,
             ),
           ],
         ),
-        child: Center(
-          child: Text(
-            'Table $tableNumber',
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
-          ),
-        ),
-      ),
+        const SizedBox(height: 12),
+      ],
     );
   }
 }

@@ -12,8 +12,8 @@ class AdvertisementPopup extends StatefulWidget {
 class _AdvertisementPopupState extends State<AdvertisementPopup> {
   bool _visible = false;
   bool _showClose = false;
-  Map<String, dynamic>? _advertisementOffer;
-  List<Map<String, dynamic>> _unfollowedOffers = [];
+  Map<String, dynamic>? _advertisementItem;
+  List<Map<String, dynamic>> _unfollowedItems = [];
   int _currentAdIndex = 0;
   bool _isCustomer = false;
 
@@ -41,16 +41,16 @@ class _AdvertisementPopupState extends State<AdvertisementPopup> {
   }
 
   void _initializePopupCycle() async {
-    _unfollowedOffers = await _fetchUnfollowedOffers();
-    if (_unfollowedOffers.isNotEmpty) {
+    _unfollowedItems = await _fetchUnfollowedItems();
+    if (_unfollowedItems.isNotEmpty) {
       _showPopup();
     }
   }
 
   void _showPopup() {
     setState(() {
-      _advertisementOffer =
-          _unfollowedOffers[_currentAdIndex % _unfollowedOffers.length];
+      _advertisementItem =
+          _unfollowedItems[_currentAdIndex % _unfollowedItems.length];
       _visible = true;
       _showClose = false;
     });
@@ -62,7 +62,7 @@ class _AdvertisementPopupState extends State<AdvertisementPopup> {
     });
   }
 
-  Future<List<Map<String, dynamic>>> _fetchUnfollowedOffers() async {
+  Future<List<Map<String, dynamic>>> _fetchUnfollowedItems() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return [];
 
@@ -81,25 +81,60 @@ class _AdvertisementPopupState extends State<AdvertisementPopup> {
             .orderBy('timestamp', descending: true)
             .get();
 
-    final unfollowed =
-        offersSnapshot.docs.map((doc) => doc.data()).where((data) {
-          final posterId = data['posted_by_id'];
-          return posterId != null && !followedIds.contains(posterId);
-        }).toList();
+    final combosSnapshot =
+        await FirebaseFirestore.instance
+            .collection('combos')
+            .orderBy('timestamp', descending: true)
+            .get();
 
-    return unfollowed;
+    final offers =
+        offersSnapshot.docs
+            .map((doc) {
+              final data = doc.data();
+              return {
+                ...data,
+                'type': 'offer',
+                'posterId': data['posted_by_id'],
+                'poster': data['posted_by'] ?? 'Unknown',
+                'title': data['name'],
+              };
+            })
+            .where((item) => !followedIds.contains(item['posterId']))
+            .toList();
+
+    final combos =
+        combosSnapshot.docs
+            .map((doc) {
+              final data = doc.data();
+              return {
+                ...data,
+                'type': 'combo',
+                'posterId': data['vendor_id'],
+                'poster': data['vendor'] ?? 'Unknown',
+                'title': data['title'],
+              };
+            })
+            .where((item) => !followedIds.contains(item['posterId']))
+            .toList();
+
+    final combined = [...offers, ...combos];
+    combined.sort(
+      (a, b) =>
+          (b['timestamp'] as Timestamp).compareTo(a['timestamp'] as Timestamp),
+    );
+    return combined;
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_isCustomer || !_visible || _advertisementOffer == null) {
+    if (!_isCustomer || !_visible || _advertisementItem == null) {
       return const SizedBox.shrink();
     }
 
-    final imageUrl = _advertisementOffer!['imageURL'] ?? '';
-    final title = _advertisementOffer!['name'] ?? 'Special Offer';
-    final price = _advertisementOffer!['price'] ?? '';
-    final poster = _advertisementOffer!['posted_by'] ?? '';
+    final imageUrl = _advertisementItem!['imageURL'] ?? '';
+    final title = _advertisementItem!['title'] ?? 'Special Deal';
+    final price = _advertisementItem!['price'] ?? '';
+    final poster = _advertisementItem!['poster'] ?? 'Vendor';
 
     return Center(
       child: Material(
@@ -134,7 +169,7 @@ class _AdvertisementPopupState extends State<AdvertisementPopup> {
                       fit: BoxFit.cover,
                       errorBuilder:
                           (context, error, stackTrace) => Container(
-                            height: 200,
+                            height: 180,
                             color: Colors.grey[300],
                             child: const Icon(Icons.image, size: 40),
                           ),
@@ -160,9 +195,7 @@ class _AdvertisementPopupState extends State<AdvertisementPopup> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {
-                        // setState(() => _visible = false);
-                      },
+                      onPressed: () {},
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color.fromARGB(
                           255,
@@ -176,7 +209,7 @@ class _AdvertisementPopupState extends State<AdvertisementPopup> {
                         ),
                       ),
                       child: const Text(
-                        "Order Now",
+                        "Take a look",
                         style: TextStyle(fontSize: 12, color: Colors.white),
                       ),
                     ),
@@ -197,8 +230,8 @@ class _AdvertisementPopupState extends State<AdvertisementPopup> {
                     onPressed: () {
                       setState(() => _visible = false);
                       _currentAdIndex++;
-                      Future.delayed(const Duration(seconds: 120), () {
-                        if (mounted && _unfollowedOffers.isNotEmpty) {
+                      Future.delayed(const Duration(seconds: 5), () {
+                        if (mounted && _unfollowedItems.isNotEmpty) {
                           _showPopup();
                         }
                       });

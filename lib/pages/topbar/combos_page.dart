@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:O_potato/pages/bottom_nav_bar.dart';
 
@@ -35,11 +36,29 @@ class CombosPage extends StatefulWidget {
 
 class _CombosPageState extends State<CombosPage> {
   List<Combo> _combos = [];
+  Set<String> _bookmarkedTitles = {};
+  bool _isCustomer = false;
 
   @override
   void initState() {
     super.initState();
     fetchCombos();
+    fetchBookmarks();
+    checkIfCustomer();
+  }
+
+  Future<void> checkIfCustomer() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final doc =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+    final type = doc.data()?['user_type'];
+    setState(() => _isCustomer = (type == 'customer'));
   }
 
   Future<void> fetchCombos() async {
@@ -54,6 +73,53 @@ class _CombosPageState extends State<CombosPage> {
     });
   }
 
+  Future<void> fetchBookmarks() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('bookmarks')
+            .get();
+
+    setState(() {
+      _bookmarkedTitles =
+          snapshot.docs
+              .map((doc) => (doc.data()['title'] ?? '') as String)
+              .toSet();
+    });
+  }
+
+  Future<void> _toggleBookmark(Combo combo) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final docRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('bookmarks')
+        .doc('${combo.title}-combo');
+
+    final isBookmarked = _bookmarkedTitles.contains(combo.title);
+
+    if (isBookmarked) {
+      await docRef.delete();
+      setState(() => _bookmarkedTitles.remove(combo.title));
+    } else {
+      await docRef.set({
+        'type': 'combo',
+        'title': combo.title,
+        'vendor': combo.vendor,
+        'price': combo.price,
+        'imageURL': combo.imageUrl,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+      setState(() => _bookmarkedTitles.add(combo.title));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -66,103 +132,72 @@ class _CombosPageState extends State<CombosPage> {
               : SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: Column(
-                  children: [
-                    for (var combo in _combos) ...[
-                      const SizedBox(height: 16),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => DummyPage(combo.title),
-                            ),
-                          );
-                        },
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Stack(
-                            children: [
-                              Image.network(
-                                combo.imageUrl,
-                                height: 150,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    height: 150,
-                                    color: Colors.grey[300],
-                                    child: const Center(
-                                      child: Icon(Icons.image, size: 40),
-                                    ),
-                                  );
-                                },
-                                loadingBuilder: (
-                                  context,
-                                  child,
-                                  loadingProgress,
-                                ) {
-                                  if (loadingProgress == null) return child;
-                                  return Container(
-                                    height: 150,
-                                    color: Colors.grey[200],
-                                    child: const Center(
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  );
-                                },
-                              ),
-                              Positioned(
-                                left: 12,
-                                top: 12,
-                                child: Container(
-                                  padding: const EdgeInsets.all(6),
-                                  color: Colors.white70,
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        combo.title,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        '${combo.vendor} · ${combo.price}',
-                                        style: const TextStyle(fontSize: 12),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-                  ],
+                  children:
+                      _combos.map((combo) => _buildComboCard(combo)).toList(),
                 ),
               ),
     );
   }
-}
 
-class DummyPage extends StatelessWidget {
-  final String title;
-  const DummyPage(this.title, {super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title), centerTitle: true),
-      body: Center(
-        child: Text(
-          'Coming soon: $title',
-          style: const TextStyle(fontSize: 24),
-          textAlign: TextAlign.center,
+  Widget _buildComboCard(Combo combo) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          children: [
+            Image.network(
+              combo.imageUrl,
+              height: 150,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder:
+                  (_, __, ___) => Container(
+                    height: 150,
+                    color: Colors.grey[300],
+                    child: const Icon(Icons.image, size: 40),
+                  ),
+            ),
+            Positioned(
+              left: 12,
+              top: 12,
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                color: Colors.white70,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      combo.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${combo.vendor} · ${combo.price}',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (_isCustomer)
+              Positioned(
+                right: 12,
+                top: 12,
+                child: IconButton(
+                  icon: Icon(
+                    _bookmarkedTitles.contains(combo.title)
+                        ? Icons.bookmark
+                        : Icons.bookmark_border,
+                    color: const Color.fromARGB(255, 127, 113, 233),
+                  ),
+                  onPressed: () => _toggleBookmark(combo),
+                ),
+              ),
+          ],
         ),
       ),
     );

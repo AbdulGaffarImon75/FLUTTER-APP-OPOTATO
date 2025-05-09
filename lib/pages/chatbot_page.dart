@@ -6,6 +6,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'bottom_nav_bar.dart';
 
 class ChatbotPage extends StatefulWidget {
+  const ChatbotPage({super.key});
+
   @override
   _ChatbotPageState createState() => _ChatbotPageState();
 }
@@ -32,6 +34,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
 
     await FirebaseFirestore.instance.collection('chat_history').add({
       'userId': userId,
+      'userName': userName,
       'message': userMessage,
       'response': botReply,
       'timestamp': Timestamp.now(),
@@ -51,9 +54,26 @@ class _ChatbotPageState extends State<ChatbotPage> {
   Future<String> getChatbotAnswer(String userMessage, String userName) async {
     final msg = userMessage.toLowerCase();
 
+    // 🔹 0. Check Goodbye Phrases
+    final goodbyeSnapshot =
+        await FirebaseFirestore.instance.collection('goodbye_chatbot').get();
+    for (var doc in goodbyeSnapshot.docs) {
+      final data = doc.data();
+      final triggers = List<String>.from(data['triggers'] ?? []);
+      final responses = List<String>.from(data['responses'] ?? []);
+
+      for (var trigger in triggers) {
+        if (msg.similarityTo(trigger.toLowerCase()) > 0.7) {
+          return responses.isNotEmpty
+              ? "${responses[Random().nextInt(responses.length)]} $userName!"
+              : "Bye $userName!";
+        }
+      }
+    }
+
+    // 🔹 1. Check Small Talk
     final smalltalkSnapshot =
         await FirebaseFirestore.instance.collection('smalltalk_chatbot').get();
-
     for (var doc in smalltalkSnapshot.docs) {
       final data = doc.data();
       final triggers = List<String>.from(data['triggers'] ?? []);
@@ -68,9 +88,9 @@ class _ChatbotPageState extends State<ChatbotPage> {
       }
     }
 
+    // 🔹 2. Check FAQ
     final faqSnapshot =
         await FirebaseFirestore.instance.collection('faq_chatbot').get();
-
     for (var doc in faqSnapshot.docs) {
       final data = doc.data();
       final keywords = List<String>.from(data['keywords'] ?? []);

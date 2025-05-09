@@ -8,7 +8,7 @@ import 'cuisines/pizza_page.dart';
 import 'topbar/bookmark_page.dart';
 import 'topbar/offers_page.dart';
 import 'topbar/following_page.dart';
-import 'topbar/order_page.dart';
+import 'topbar/combos_page.dart';
 import 'topbar/check_in_page.dart';
 import 'advertisement.dart';
 
@@ -32,15 +32,24 @@ class Combo {
   final String vendor;
   final String price;
   final String image;
-  final Widget page;
 
   Combo({
     required this.title,
     required this.vendor,
     required this.price,
     required this.image,
-    required this.page,
   });
+
+  factory Combo.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    final price = data['price'] ?? '';
+    return Combo(
+      title: data['title'] ?? '',
+      vendor: data['vendor'] ?? '',
+      image: data['image'] ?? '',
+      price: price.toString().contains('৳') ? price : '৳$price',
+    );
+  }
 }
 
 class Billboard {
@@ -62,36 +71,14 @@ class _HomePageState extends State<HomePage> {
   String _searchQuery = '';
 
   List<Cuisine> _allCuisines = [];
+  List<Combo> _combos = [];
   Billboard? _billboard;
-
-  final List<Combo> combos = [
-    Combo(
-      title: 'Meaty Supreme',
-      vendor: 'Meat & Marrow',
-      price: '৳690',
-      image: 'assets/meaty_supreme.jpg',
-      page: DummyPage('Meaty Supreme'),
-    ),
-    Combo(
-      title: 'Burger Meal',
-      vendor: "Khana's",
-      price: '৳1049',
-      image: 'assets/burger_meal.jpeg',
-      page: DummyPage('Burger Meal'),
-    ),
-    Combo(
-      title: 'Unlimited Pizza',
-      vendor: "Domino's Pizza",
-      price: '৳999',
-      image: 'assets/pizza_unlimited.jpg',
-      page: DummyPage('Unlimited Pizza'),
-    ),
-  ];
 
   @override
   void initState() {
     super.initState();
     fetchCuisines();
+    fetchCombos();
     fetchBillboard();
     _searchController.addListener(() {
       setState(() {
@@ -106,6 +93,17 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _allCuisines =
           snapshot.docs.map((doc) => Cuisine.fromFirestore(doc)).toList();
+    });
+  }
+
+  Future<void> fetchCombos() async {
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('combos')
+            .orderBy('timestamp', descending: true)
+            .get();
+    setState(() {
+      _combos = snapshot.docs.map((doc) => Combo.fromFirestore(doc)).toList();
     });
   }
 
@@ -206,11 +204,11 @@ class _HomePageState extends State<HomePage> {
                               ),
                             );
                           }),
-                          _actionButton(Icons.shopping_bag, "Reservations", () {
+                          _actionButton(Icons.shopping_bag, "Combos", () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const OrderPage(),
+                                builder: (_) => const CombosPage(),
                               ),
                             );
                           }),
@@ -304,31 +302,29 @@ class _HomePageState extends State<HomePage> {
                             final cuisine = _filteredCuisines[index];
                             return GestureDetector(
                               onTap: () {
-                                if (cuisine.label.toLowerCase() == 'kacchi') {
+                                final label = cuisine.label.toLowerCase();
+                                if (label == 'kacchi') {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (_) => const KacchiPage(),
                                     ),
                                   );
-                                } else if (cuisine.label.toLowerCase() ==
-                                    'burger') {
+                                } else if (label == 'burger') {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (_) => const BurgerPage(),
                                     ),
                                   );
-                                } else if (cuisine.label.toLowerCase() ==
-                                    'pizza') {
+                                } else if (label == 'pizza') {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (_) => const PizzaPage(),
                                     ),
                                   );
-                                } else if (cuisine.label.toLowerCase() ==
-                                    'wrap') {
+                                } else if (label == 'wrap') {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
@@ -390,80 +386,103 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    SizedBox(
-                      height: 220,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: combos.length,
-                        itemBuilder: (context, index) {
-                          final combo = combos[index];
-                          return GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => combo.page),
+                    _combos.isEmpty
+                        ? const Center(child: CircularProgressIndicator())
+                        : SizedBox(
+                          height: 220,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _combos.length,
+                            itemBuilder: (context, index) {
+                              final combo = _combos[index];
+                              return GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => DummyPage(combo.title),
+                                    ),
+                                  );
+                                },
+                                child: Container(
+                                  width: 160,
+                                  margin: const EdgeInsets.only(right: 12),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                    color: Colors.grey[100],
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius:
+                                            const BorderRadius.vertical(
+                                              top: Radius.circular(12),
+                                            ),
+                                        child: Image.network(
+                                          combo.image,
+                                          height: 120,
+                                          width: double.infinity,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (
+                                            context,
+                                            error,
+                                            stackTrace,
+                                          ) {
+                                            return Container(
+                                              height: 120,
+                                              color: Colors.grey[300],
+                                              child: const Center(
+                                                child: Icon(
+                                                  Icons.image,
+                                                  size: 40,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.all(8),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              combo.vendor,
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              combo.title,
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              combo.price,
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.purple,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               );
                             },
-                            child: Container(
-                              width: 160,
-                              margin: const EdgeInsets.only(right: 12),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                color: Colors.grey[100],
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: const BorderRadius.vertical(
-                                      top: Radius.circular(12),
-                                    ),
-                                    child: Image.asset(
-                                      combo.image,
-                                      height: 120,
-                                      width: double.infinity,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(8),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          combo.vendor,
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          combo.title,
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          combo.price,
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.purple,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
+                          ),
+                        ),
+                    const SizedBox(height: 30),
                   ],
                 ),
               ),

@@ -23,6 +23,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   bool _showPasswordFields = false;
   bool _isLoading = true;
+  String? _profileImageUrl;
 
   @override
   void initState() {
@@ -40,6 +41,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           _nameController.text = userData['name'] ?? '';
           _emailController.text = user.email ?? '';
           _phoneController.text = userData['phone'] ?? '';
+          _profileImageUrl = userData['profile_image_url'];
         }
       }
     } catch (e) {
@@ -65,143 +67,152 @@ class _EditProfilePageState extends State<EditProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Matches Profile Page
+      backgroundColor: Colors.white,
+      appBar: null,
       body: SafeArea(
-        child: Stack(
-          children: [
+        child:
             _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 24),
-                        Row(
-                          children: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text(
-                                'Back',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.blue,
-                                ),
-                              ),
-                            ),
-                            const Spacer(),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        const Center(
-                          child: Text(
-                            'Edit Profile',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        const Center(
-                          child: CircleAvatar(
-                            radius: 50,
-                            backgroundColor: Color.fromARGB(255, 191, 160, 244),
-                            backgroundImage: AssetImage('assets/images.jpg'),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        _buildProfileField('Name', _nameController),
-                        const SizedBox(height: 16),
-                        _buildProfileField(
-                          'Email',
-                          _emailController,
-                          isEmail: true,
-                        ),
-                        const SizedBox(height: 16),
-                        _buildProfileField(
-                          'Phone Number',
-                          _phoneController,
-                          isPhone: true,
-                        ),
-                        const SizedBox(height: 24),
-                        if (_showPasswordFields) ...[
-                          _buildPasswordField(
-                            'Current Password',
-                            _currentPasswordController,
-                          ),
-                          const SizedBox(height: 16),
-                          _buildPasswordField(
-                            'New Password',
-                            _newPasswordController,
-                          ),
-                          const SizedBox(height: 16),
-                          _buildPasswordField(
-                            'Confirm New Password',
-                            _confirmPasswordController,
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-                        Center(
-                          child: TextButton(
-                            onPressed: () {
-                              setState(() {
-                                _showPasswordFields = !_showPasswordFields;
-                              });
-                            },
-                            child: Text(
-                              _showPasswordFields
-                                  ? 'Cancel Password Change'
-                                  : 'Change Password',
-                              style: const TextStyle(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text(
+                              'Back',
+                              style: TextStyle(
                                 fontSize: 16,
                                 color: Colors.blue,
                               ),
                             ),
                           ),
+                          const Spacer(),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      const Center(
+                        child: Text(
+                          'Edit Profile',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
                         ),
-                        const SizedBox(height: 24),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _saveChanges,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color.fromARGB(
-                                255,
-                                191,
-                                160,
-                                244,
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: const Text(
-                              'Save Changes',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
+                      ),
+                      const SizedBox(height: 32),
+                      Center(
+                        child: CircleAvatar(
+                          radius: 50,
+                          backgroundColor: const Color.fromARGB(
+                            255,
+                            191,
+                            160,
+                            244,
+                          ),
+                          backgroundImage:
+                              _profileImageUrl != null &&
+                                      _profileImageUrl!.isNotEmpty
+                                  ? NetworkImage(_profileImageUrl!)
+                                  : null,
+                          child:
+                              (_profileImageUrl == null ||
+                                      _profileImageUrl!.isEmpty)
+                                  ? const Icon(
+                                    Icons.person,
+                                    size: 50,
+                                    color: Colors.white,
+                                  )
+                                  : null,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      _buildProfileField('Name', _nameController),
+                      const SizedBox(height: 16),
+                      _buildProfileField(
+                        'Email',
+                        _emailController,
+                        isEmail: true,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildProfileField(
+                        'Phone Number',
+                        _phoneController,
+                        isPhone: true,
+                      ),
+                      const SizedBox(height: 24),
+                      if (_showPasswordFields) ...[
+                        _buildPasswordField(
+                          'Current Password',
+                          _currentPasswordController,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildPasswordField(
+                          'New Password',
+                          _newPasswordController,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildPasswordField(
+                          'Confirm New Password',
+                          _confirmPasswordController,
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      Center(
+                        child: TextButton(
+                          onPressed: () {
+                            setState(() {
+                              _showPasswordFields = !_showPasswordFields;
+                            });
+                          },
+                          child: Text(
+                            _showPasswordFields
+                                ? 'Cancel Password Change'
+                                : 'Change Password',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.blue,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 80),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _saveChanges,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color.fromARGB(
+                              255,
+                              191,
+                              160,
+                              244,
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Save Changes',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 80),
+                    ],
                   ),
                 ),
-            const Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: BottomNavBar(activeIndex: 4),
-            ),
-          ],
-        ),
       ),
+      bottomNavigationBar: const BottomNavBar(activeIndex: 4),
     );
   }
 

@@ -102,76 +102,111 @@ class _AdvertisementPopupState extends State<AdvertisementPopup> {
     final poster = _advertisementOffer!['posted_by'] ?? '';
 
     return Center(
-      child: Container(
-        width: MediaQuery.of(context).size.width * 0.9,
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 100),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    imageUrl,
-                    height: 180,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder:
-                        (context, error, stackTrace) => Container(
-                          height: 180,
-                          color: Colors.grey[300],
-                          child: const Icon(Icons.image, size: 40),
-                        ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  '$title - $price',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Offered by $poster',
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-            if (_showClose)
-              Positioned(
-                right: 0,
-                top: 0,
-                child: IconButton(
-                  icon: const Icon(Icons.close, color: Colors.grey),
-                  onPressed: () {
-                    setState(() => _visible = false);
-                    _currentAdIndex++;
-                    Future.delayed(const Duration(seconds: 10), () {
-                      if (mounted && _unfollowedOffers.isNotEmpty) {
-                        _showPopup();
-                      }
-                    });
-                  },
-                ),
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.70,
+          height: MediaQuery.of(context).size.height * 0.455,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 20,
+                offset: const Offset(0, 10),
               ),
-          ],
+            ],
+          ),
+          child: Stack(
+            children: [
+              Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                mainAxisSize: MainAxisSize.max,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Image.network(
+                      imageUrl,
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder:
+                          (context, error, stackTrace) => Container(
+                            height: 200,
+                            color: Colors.grey[300],
+                            child: const Icon(Icons.image, size: 40),
+                          ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '$title - $price',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Offered by $poster',
+                    style: const TextStyle(fontSize: 15, color: Colors.grey),
+                    textAlign: TextAlign.center,
+                  ),
+                  const Spacer(),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        // setState(() => _visible = false);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromARGB(
+                          255,
+                          126,
+                          84,
+                          243,
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      child: const Text(
+                        "Order Now",
+                        style: TextStyle(fontSize: 12, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    "T&Cs apply.",
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ],
+              ),
+              if (_showClose)
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: IconButton(
+                    icon: const Icon(Icons.close, color: Colors.grey),
+                    onPressed: () {
+                      setState(() => _visible = false);
+                      _currentAdIndex++;
+                      Future.delayed(const Duration(seconds: 10), () {
+                        if (mounted && _unfollowedOffers.isNotEmpty) {
+                          _showPopup();
+                        }
+                      });
+                    },
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

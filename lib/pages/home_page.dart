@@ -46,7 +46,7 @@ class Combo {
     return Combo(
       title: data['title'] ?? '',
       vendor: data['vendor'] ?? '',
-      image: data['image'] ?? '',
+      image: data['imageURL'] ?? '',
       price: price.toString().contains('৳') ? price : '৳$price',
     );
   }

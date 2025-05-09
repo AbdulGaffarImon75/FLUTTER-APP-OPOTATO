@@ -15,6 +15,7 @@ class _FollowingPageState extends State<FollowingPage> {
   Set<String> _followedIds = {};
   bool _isLoading = true;
   bool _isCustomer = false;
+  String? _customerName;
 
   @override
   void initState() {
@@ -32,7 +33,10 @@ class _FollowingPageState extends State<FollowingPage> {
             .doc(user.uid)
             .get();
 
-    final userType = userDoc.data()?['user_type'] ?? '';
+    final userData = userDoc.data();
+    final userType = userData?['user_type'] ?? '';
+    _customerName = userData?['name'] ?? 'A user';
+
     if (userType != 'customer') {
       setState(() {
         _isCustomer = false;
@@ -93,10 +97,37 @@ class _FollowingPageState extends State<FollowingPage> {
 
     final isCurrentlyFollowing = _followedIds.contains(restaurantId);
 
+    final restaurantDoc =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(restaurantId)
+            .get();
+    final restaurantName = restaurantDoc.data()?['name'] ?? 'Restaurant';
+
     if (isCurrentlyFollowing) {
       await followRef.delete();
+
+      await FirebaseFirestore.instance
+          .collection('notifications')
+          .doc(restaurantId)
+          .collection('messages')
+          .add({
+            'message':
+                'Dear $restaurantName, $_customerName has just unfollowed you.',
+            'timestamp': FieldValue.serverTimestamp(),
+          });
     } else {
       await followRef.set({'timestamp': FieldValue.serverTimestamp()});
+
+      await FirebaseFirestore.instance
+          .collection('notifications')
+          .doc(restaurantId)
+          .collection('messages')
+          .add({
+            'message':
+                'Dear $restaurantName, $_customerName has started following you.',
+            'timestamp': FieldValue.serverTimestamp(),
+          });
     }
 
     await _loadData();

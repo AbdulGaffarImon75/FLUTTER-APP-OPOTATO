@@ -18,6 +18,11 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
   final TextEditingController _seatStatusController = TextEditingController();
   final TextEditingController _imageUrlController = TextEditingController();
 
+  final TextEditingController _comboTitleController = TextEditingController();
+  final TextEditingController _comboPriceController = TextEditingController();
+  final TextEditingController _comboImageUrlController =
+      TextEditingController();
+
   String? profileImageUrl;
   String? restaurantName;
   String? restaurantUID;
@@ -25,6 +30,7 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
   int totalSeats = 30;
   int availableSeats = 0;
   List<DocumentSnapshot> _restaurantOffers = [];
+  List<DocumentSnapshot> _restaurantCombos = [];
 
   @override
   void initState() {
@@ -66,9 +72,36 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
         }
 
         await _fetchRestaurantOffers();
+        await _fetchRestaurantCombos();
         setState(() {});
       }
     }
+  }
+
+  Future<void> _fetchRestaurantOffers() async {
+    if (restaurantName == null) return;
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('offers')
+            .where('posted_by', isEqualTo: restaurantName)
+            .orderBy('timestamp', descending: true)
+            .get();
+    setState(() {
+      _restaurantOffers = snapshot.docs;
+    });
+  }
+
+  Future<void> _fetchRestaurantCombos() async {
+    if (restaurantName == null) return;
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('combos')
+            .where('vendor', isEqualTo: restaurantName)
+            .orderBy('timestamp', descending: true)
+            .get();
+    setState(() {
+      _restaurantCombos = snapshot.docs;
+    });
   }
 
   Future<void> _postOffer() async {
@@ -85,18 +118,32 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
       };
 
       await FirebaseFirestore.instance.collection('offers').add(offerData);
-
       _offerNameController.clear();
       _offerPriceController.clear();
-      _seatStatusController.clear();
       _imageUrlController.clear();
-
       await _fetchRestaurantOffers();
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Offer posted successfully!')),
       );
     }
+  }
+
+  Future<void> _postCombo() async {
+    final comboData = {
+      'title': _comboTitleController.text,
+      'price': _comboPriceController.text,
+      'imageURL': _comboImageUrlController.text,
+      'timestamp': FieldValue.serverTimestamp(),
+      'vendor': restaurantName ?? '',
+    };
+    await FirebaseFirestore.instance.collection('combos').add(comboData);
+    _comboTitleController.clear();
+    _comboPriceController.clear();
+    _comboImageUrlController.clear();
+    await _fetchRestaurantCombos();
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Combo posted successfully!')));
   }
 
   Future<void> _updateSeats() async {
@@ -104,11 +151,10 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
     if (input == null) return;
 
     final newSeats = availableSeats + input;
-
     if (newSeats > totalSeats) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Sorry! Over your capacity!')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sorry! Over your capacity!')),
+      );
       return;
     }
 
@@ -116,13 +162,8 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
         .collection('rest')
         .doc(restaurantUID)
         .update({'available seats': newSeats});
-
-    setState(() {
-      availableSeats = newSeats;
-    });
-
+    setState(() => availableSeats = newSeats);
     _seatStatusController.clear();
-
     if (availableSeats > 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Seats updated successfully')),
@@ -130,33 +171,14 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
     }
   }
 
-  Future<void> _fetchRestaurantOffers() async {
-    if (restaurantName == null) return;
-
-    final snapshot =
-        await FirebaseFirestore.instance
-            .collection('offers')
-            .where('posted_by', isEqualTo: restaurantName)
-            .orderBy('timestamp', descending: true)
-            .get();
-
-    setState(() {
-      _restaurantOffers = snapshot.docs;
-    });
-  }
-
   Future<void> _deleteOffer(String docId) async {
     await FirebaseFirestore.instance.collection('offers').doc(docId).delete();
     await _fetchRestaurantOffers();
   }
 
-  @override
-  void dispose() {
-    _offerNameController.dispose();
-    _offerPriceController.dispose();
-    _seatStatusController.dispose();
-    _imageUrlController.dispose();
-    super.dispose();
+  Future<void> _deleteCombo(String docId) async {
+    await FirebaseFirestore.instance.collection('combos').doc(docId).delete();
+    await _fetchRestaurantCombos();
   }
 
   @override
@@ -168,6 +190,7 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
         centerTitle: true,
         backgroundColor: const Color.fromARGB(255, 191, 160, 244),
       ),
+      bottomNavigationBar: const BottomNavBar(activeIndex: 0),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -178,11 +201,11 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
               child: CircleAvatar(
                 radius: 60,
                 backgroundImage:
-                    profileImageUrl != null && profileImageUrl!.isNotEmpty
+                    profileImageUrl?.isNotEmpty == true
                         ? NetworkImage(profileImageUrl!)
                         : null,
                 child:
-                    (profileImageUrl == null || profileImageUrl!.isEmpty)
+                    profileImageUrl?.isEmpty ?? true
                         ? const Icon(Icons.person, size: 50)
                         : null,
               ),
@@ -228,17 +251,55 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
                 border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _postOffer,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 191, 160, 244),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: const Text('POST'),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: _postOffer,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color.fromARGB(255, 191, 160, 244),
+                padding: EdgeInsets.symmetric(vertical: 14),
+                minimumSize: Size(double.infinity, 0),
               ),
+              child: const Text('POST'),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Post Combo',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _comboTitleController,
+              decoration: const InputDecoration(
+                labelText: 'Combo Title',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _comboPriceController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Price',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _comboImageUrlController,
+              decoration: const InputDecoration(
+                labelText: 'Image URL',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: _postCombo,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color.fromARGB(255, 191, 160, 244),
+                padding: EdgeInsets.symmetric(vertical: 14),
+                minimumSize: Size(double.infinity, 0),
+              ),
+              child: const Text('POST'),
             ),
             const SizedBox(height: 24),
             const Text(
@@ -254,24 +315,21 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
                 border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _updateSeats,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 191, 160, 244),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: const Text('UPDATE'),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: _updateSeats,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color.fromARGB(255, 191, 160, 244),
+                padding: EdgeInsets.symmetric(vertical: 14),
+                minimumSize: Size(double.infinity, 0),
               ),
+              child: const Text('UPDATE'),
             ),
             const SizedBox(height: 24),
             const Text(
               'Seats',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
             Text('Available Seats: $availableSeats'),
             Text('Total Seats: $totalSeats'),
             const SizedBox(height: 24),
@@ -279,37 +337,49 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
               'Offers',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
-            if (_restaurantOffers.isEmpty)
-              const Text('No offers posted yet.')
-            else
-              Column(
-                children:
-                    _restaurantOffers.map((doc) {
-                      final data = doc.data() as Map<String, dynamic>;
-                      final name = data['name'] ?? '';
-                      final timestamp =
-                          (data['timestamp'] as Timestamp?)?.toDate();
-                      final formattedDate =
-                          timestamp != null
-                              ? DateFormat('MMM d, h:mm a').format(timestamp)
-                              : 'Unknown';
-
-                      return ListTile(
-                        title: Text(name),
-                        subtitle: Text(formattedDate),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => _deleteOffer(doc.id),
-                        ),
-                      );
-                    }).toList(),
-              ),
+            ..._restaurantOffers.map((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              final name = data['name'] ?? '';
+              final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
+              final formattedDate =
+                  timestamp != null
+                      ? DateFormat('MMM d, h:mm a').format(timestamp)
+                      : 'Unknown';
+              return ListTile(
+                title: Text(name),
+                subtitle: Text(formattedDate),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () => _deleteOffer(doc.id),
+                ),
+              );
+            }),
+            const SizedBox(height: 24),
+            const Text(
+              'Combos',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            ..._restaurantCombos.map((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              final title = data['title'] ?? '';
+              final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
+              final formattedDate =
+                  timestamp != null
+                      ? DateFormat('MMM d, h:mm a').format(timestamp)
+                      : 'Unknown';
+              return ListTile(
+                title: Text(title),
+                subtitle: Text(formattedDate),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () => _deleteCombo(doc.id),
+                ),
+              );
+            }),
             const SizedBox(height: 80),
           ],
         ),
       ),
-      bottomNavigationBar: const BottomNavBar(activeIndex: 0),
     );
   }
 }

@@ -41,11 +41,17 @@ dependencies:
   firebase_database: ^11.3.5
   firebase_auth: ^5.5.2
   cloud_firestore: ^5.6.6
+  string_similarity: ^2.0.0
+  http: ^1.4.0  
+  
+  
+  
   
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.13.1
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -62,7 +68,11 @@ dev_dependencies:
 flutter:
   assets:
     - assets/
-
+  uses-material-design: true
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/Fast-Food-icon.png"
 
 
   # The following line ensures that the Material Icons font is

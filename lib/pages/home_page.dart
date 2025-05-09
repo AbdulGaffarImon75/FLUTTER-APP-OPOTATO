@@ -8,8 +8,9 @@ import 'cuisines/pizza_page.dart';
 import 'topbar/bookmark_page.dart';
 import 'topbar/offers_page.dart';
 import 'topbar/following_page.dart';
-import 'topbar/order_page.dart';
+import 'topbar/combos_page.dart';
 import 'topbar/check_in_page.dart';
+import 'advertisement.dart';
 
 class Cuisine {
   final String label;
@@ -31,15 +32,24 @@ class Combo {
   final String vendor;
   final String price;
   final String image;
-  final Widget page;
 
   Combo({
     required this.title,
     required this.vendor,
     required this.price,
     required this.image,
-    required this.page,
   });
+
+  factory Combo.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    final price = data['price'] ?? '';
+    return Combo(
+      title: data['title'] ?? '',
+      vendor: data['vendor'] ?? '',
+      image: data['image'] ?? '',
+      price: price.toString().contains('৳') ? price : '৳$price',
+    );
+  }
 }
 
 class Billboard {
@@ -61,36 +71,14 @@ class _HomePageState extends State<HomePage> {
   String _searchQuery = '';
 
   List<Cuisine> _allCuisines = [];
+  List<Combo> _combos = [];
   Billboard? _billboard;
-
-  final List<Combo> combos = [
-    Combo(
-      title: 'Meaty Supreme',
-      vendor: 'Meat & Marrow',
-      price: '৳690',
-      image: 'assets/meaty_supreme.jpg',
-      page: DummyPage('Meaty Supreme'),
-    ),
-    Combo(
-      title: 'Burger Meal',
-      vendor: "Khana's",
-      price: '৳1049',
-      image: 'assets/burger_meal.jpeg',
-      page: DummyPage('Burger Meal'),
-    ),
-    Combo(
-      title: 'Unlimited Pizza',
-      vendor: "Domino's Pizza",
-      price: '৳999',
-      image: 'assets/pizza_unlimited.jpg',
-      page: DummyPage('Unlimited Pizza'),
-    ),
-  ];
 
   @override
   void initState() {
     super.initState();
     fetchCuisines();
+    fetchCombos();
     fetchBillboard();
     _searchController.addListener(() {
       setState(() {
@@ -105,6 +93,17 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _allCuisines =
           snapshot.docs.map((doc) => Cuisine.fromFirestore(doc)).toList();
+    });
+  }
+
+  Future<void> fetchCombos() async {
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('combos')
+            .orderBy('timestamp', descending: true)
+            .get();
+    setState(() {
+      _combos = snapshot.docs.map((doc) => Combo.fromFirestore(doc)).toList();
     });
   }
 
@@ -141,310 +140,357 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      bottomNavigationBar: const BottomNavBar(activeIndex: 2),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: Colors.white,
+          bottomNavigationBar: const BottomNavBar(activeIndex: 2),
+          body: SafeArea(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Image.asset('assets/logo.png', width: 40, height: 40),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          hintText: 'Search',
-                          prefixIcon: const Icon(Icons.search),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          filled: true,
-                          fillColor: Colors.grey[200],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _actionButton(Icons.bookmark, "Bookmarks", () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const BookmarkPage(),
-                          ),
-                        );
-                      }),
-                      _actionButton(Icons.local_offer, "Offers", () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const OffersPage()),
-                        );
-                      }),
-                      _actionButton(Icons.person_add, "Following", () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const FollowingPage(),
-                          ),
-                        );
-                      }),
-                      _actionButton(Icons.shopping_bag, "Reservations", () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const OrderPage()),
-                        );
-                      }),
-                      _actionButton(Icons.location_on_rounded, "Check Ins", () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const CheckInPage(),
-                          ),
-                        );
-                      }),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _billboard == null
-                    ? const Center(child: CircularProgressIndicator())
-                    : GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => DummyPage(_billboard!.title),
-                          ),
-                        );
-                      },
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Stack(
-                          children: [
-                            Image.network(
-                              _billboard!.imageUrl,
-                              height: 150,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  height: 150,
-                                  color: Colors.grey[300],
-                                  child: const Center(
-                                    child: Icon(Icons.image, size: 40),
-                                  ),
-                                );
-                              },
-                            ),
-                            Positioned(
-                              left: 12,
-                              top: 12,
-                              child: Container(
-                                padding: const EdgeInsets.all(6),
-                                color: Colors.white70,
-                                child: Text(
-                                  _billboard!.title,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
-                                ),
+                    Row(
+                      children: [
+                        Image.asset('assets/logo.png', width: 40, height: 40),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            decoration: InputDecoration(
+                              hintText: 'Search',
+                              prefixIcon: const Icon(Icons.search),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20),
                               ),
+                              filled: true,
+                              fillColor: Colors.grey[200],
                             ),
-                          ],
+                          ),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _actionButton(Icons.bookmark, "Bookmarks", () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const BookmarkPage(),
+                              ),
+                            );
+                          }),
+                          _actionButton(Icons.local_offer, "Offers", () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const OffersPage(),
+                              ),
+                            );
+                          }),
+                          _actionButton(Icons.person_add, "Following", () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const FollowingPage(),
+                              ),
+                            );
+                          }),
+                          _actionButton(Icons.shopping_bag, "Combos", () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const CombosPage(),
+                              ),
+                            );
+                          }),
+                          _actionButton(
+                            Icons.location_on_rounded,
+                            "Check Ins",
+                            () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const CheckInPage(),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     ),
-                const SizedBox(height: 20),
-                if (_filteredCuisines.isNotEmpty) ...[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
-                      Text(
-                        "Cuisines",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Icon(Icons.chevron_right),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    height: 90,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _filteredCuisines.length,
-                      itemBuilder: (context, index) {
-                        final cuisine = _filteredCuisines[index];
-                        return GestureDetector(
+                    const SizedBox(height: 16),
+                    _billboard == null
+                        ? const Center(child: CircularProgressIndicator())
+                        : GestureDetector(
                           onTap: () {
-                            if (cuisine.label.toLowerCase() == 'kacchi') {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const KacchiPage(),
-                                ),
-                              );
-                            } else if (cuisine.label.toLowerCase() ==
-                                'burger') {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const BurgerPage(),
-                                ),
-                              );
-                            } else if (cuisine.label.toLowerCase() == 'pizza') {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const PizzaPage(),
-                                ),
-                              );
-                            } else if (cuisine.label.toLowerCase() == 'wrap') {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const WrapsPage(),
-                                ),
-                              );
-                            } else {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => DummyPage(cuisine.label),
-                                ),
-                              );
-                            }
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => DummyPage(_billboard!.title),
+                              ),
+                            );
                           },
-                          child: Padding(
-                            padding: const EdgeInsets.only(right: 12),
-                            child: Column(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Stack(
                               children: [
-                                ClipOval(
-                                  child: Image.network(
-                                    cuisine.imageUrl,
-                                    width: 60,
-                                    height: 60,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Container(
-                                        width: 60,
-                                        height: 60,
-                                        color: Colors.grey[300],
-                                        child: const Icon(
-                                          Icons.fastfood,
-                                          size: 30,
-                                        ),
-                                      );
-                                    },
+                                Image.network(
+                                  _billboard!.imageUrl,
+                                  height: 150,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      height: 150,
+                                      color: Colors.grey[300],
+                                      child: const Center(
+                                        child: Icon(Icons.image, size: 40),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                Positioned(
+                                  left: 12,
+                                  top: 12,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(6),
+                                    color: Colors.white70,
+                                    child: Text(
+                                      _billboard!.title,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(cuisine.label),
                               ],
                             ),
                           ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 20),
-                const Text(
-                  "Explore Combo",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  height: 220,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: combos.length,
-                    itemBuilder: (context, index) {
-                      final combo = combos[index];
-                      return GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => combo.page),
-                          );
-                        },
-                        child: Container(
-                          width: 160,
-                          margin: const EdgeInsets.only(right: 12),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            color: Colors.grey[100],
+                        ),
+                    const SizedBox(height: 20),
+                    if (_filteredCuisines.isNotEmpty) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: const [
+                          Text(
+                            "Cuisines",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ClipRRect(
-                                borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(12),
-                                ),
-                                child: Image.asset(
-                                  combo.image,
-                                  height: 120,
-                                  width: double.infinity,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(8),
+                          Icon(Icons.chevron_right),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        height: 90,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _filteredCuisines.length,
+                          itemBuilder: (context, index) {
+                            final cuisine = _filteredCuisines[index];
+                            return GestureDetector(
+                              onTap: () {
+                                final label = cuisine.label.toLowerCase();
+                                if (label == 'kacchi') {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const KacchiPage(),
+                                    ),
+                                  );
+                                } else if (label == 'burger') {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const BurgerPage(),
+                                    ),
+                                  );
+                                } else if (label == 'pizza') {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const PizzaPage(),
+                                    ),
+                                  );
+                                } else if (label == 'wrap') {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const WrapsPage(),
+                                    ),
+                                  );
+                                } else {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => DummyPage(cuisine.label),
+                                    ),
+                                  );
+                                }
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.only(right: 12),
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      combo.vendor,
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey,
+                                    ClipOval(
+                                      child: Image.network(
+                                        cuisine.imageUrl,
+                                        width: 60,
+                                        height: 60,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (
+                                          context,
+                                          error,
+                                          stackTrace,
+                                        ) {
+                                          return Container(
+                                            width: 60,
+                                            height: 60,
+                                            color: Colors.grey[300],
+                                            child: const Icon(
+                                              Icons.fastfood,
+                                              size: 30,
+                                            ),
+                                          );
+                                        },
                                       ),
                                     ),
                                     const SizedBox(height: 4),
-                                    Text(
-                                      combo.title,
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      combo.price,
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.purple,
-                                      ),
-                                    ),
+                                    Text(cuisine.label),
                                   ],
                                 ),
                               ),
-                            ],
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+                    const Text(
+                      "Explore Combo",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    _combos.isEmpty
+                        ? const Center(child: CircularProgressIndicator())
+                        : SizedBox(
+                          height: 220,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _combos.length,
+                            itemBuilder: (context, index) {
+                              final combo = _combos[index];
+                              return GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => DummyPage(combo.title),
+                                    ),
+                                  );
+                                },
+                                child: Container(
+                                  width: 160,
+                                  margin: const EdgeInsets.only(right: 12),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                    color: Colors.grey[100],
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius:
+                                            const BorderRadius.vertical(
+                                              top: Radius.circular(12),
+                                            ),
+                                        child: Image.network(
+                                          combo.image,
+                                          height: 120,
+                                          width: double.infinity,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (
+                                            context,
+                                            error,
+                                            stackTrace,
+                                          ) {
+                                            return Container(
+                                              height: 120,
+                                              color: Colors.grey[300],
+                                              child: const Center(
+                                                child: Icon(
+                                                  Icons.image,
+                                                  size: 40,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.all(8),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              combo.vendor,
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              combo.title,
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              combo.price,
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.purple,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ),
-                      );
-                    },
-                  ),
+                    const SizedBox(height: 30),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
-      ),
+        const AdvertisementPopup(),
+      ],
     );
   }
 

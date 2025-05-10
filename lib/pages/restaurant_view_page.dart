@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'bottom_nav_bar.dart';
+// import 'menus_page.dart';
+// import 'review_page.dart';
 
 class RestaurantViewPage extends StatefulWidget {
   final String restaurantId;
@@ -135,7 +137,6 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
             .where('posted_by_id', isEqualTo: widget.restaurantId)
             .orderBy('timestamp', descending: true)
             .get();
-
     setState(() => _offers = snapshot.docs);
   }
 
@@ -146,7 +147,6 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
             .where('vendor', isEqualTo: _name)
             .orderBy('timestamp', descending: true)
             .get();
-
     setState(() => _combos = snapshot.docs);
   }
 
@@ -155,24 +155,6 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_name ?? 'Restaurant'),
-        actions:
-            _isCustomer
-                ? [
-                  TextButton(
-                    onPressed: _toggleFollow,
-                    style: TextButton.styleFrom(
-                      backgroundColor:
-                          _isFollowing ? Colors.grey.shade300 : Colors.green,
-                    ),
-                    child: Text(
-                      _isFollowing ? 'Unfollow' : 'Follow',
-                      style: TextStyle(
-                        color: _isFollowing ? Colors.black : Colors.white,
-                      ),
-                    ),
-                  ),
-                ]
-                : null,
         backgroundColor: const Color.fromARGB(255, 191, 160, 244),
       ),
       backgroundColor: Colors.white,
@@ -185,6 +167,7 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Logo and Name
                     Row(
                       children: [
                         CircleAvatar(
@@ -208,7 +191,38 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
                         ),
                       ],
                     ),
+
                     const SizedBox(height: 24),
+
+                    // Buttons: Menu, Review, Follow/Unfollow
+                    Row(
+                      children: [
+                        _buildActionButton('Menu', () {}),
+                        //   Navigator.push(context, MaterialPageRoute(builder: (_) => const MenusPage()));
+                        // }),
+                        const SizedBox(width: 12),
+                        _buildActionButton('Reviews', () {}),
+                        //   Navigator.push(context, MaterialPageRoute(builder: (_) => const ReviewPage()));
+                        // }),
+                        if (_isCustomer) ...[
+                          const SizedBox(width: 12),
+                          _buildActionButton(
+                            _isFollowing ? 'Unfollow' : 'Follow',
+                            _toggleFollow,
+                            backgroundColor:
+                                _isFollowing
+                                    ? Colors.grey.shade300
+                                    : Colors.green,
+                            textColor:
+                                _isFollowing ? Colors.black : Colors.white,
+                          ),
+                        ],
+                      ],
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // Offers
                     const Text(
                       'Offers',
                       style: TextStyle(
@@ -220,6 +234,7 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
                     ..._offers.map((doc) {
                       final data = doc.data() as Map<String, dynamic>;
                       return Card(
+                        color: const Color.fromARGB(255, 245, 237, 255),
                         child: ListTile(
                           leading: Image.network(
                             data['imageURL'],
@@ -231,7 +246,10 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
                         ),
                       );
                     }),
+
                     const SizedBox(height: 24),
+
+                    // Combos
                     const Text(
                       'Combos',
                       style: TextStyle(
@@ -243,6 +261,7 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
                     ..._combos.map((doc) {
                       final data = doc.data() as Map<String, dynamic>;
                       return Card(
+                        color: const Color.fromARGB(255, 245, 237, 255),
                         child: ListTile(
                           leading: Image.network(
                             data['imageURL'],
@@ -250,13 +269,30 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
                             fit: BoxFit.cover,
                           ),
                           title: Text(data['title']),
-                          subtitle: Text("৳${data['price']}"),
+                          subtitle: Text("à§³${data['price']}"),
                         ),
                       );
                     }),
                   ],
                 ),
               ),
+    );
+  }
+
+  Widget _buildActionButton(
+    String text,
+    VoidCallback onPressed, {
+    Color backgroundColor = const Color.fromARGB(255, 230, 220, 250),
+    Color textColor = Colors.black,
+  }) {
+    return TextButton(
+      onPressed: onPressed,
+      style: TextButton.styleFrom(
+        backgroundColor: backgroundColor,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      ),
+      child: Text(text, style: TextStyle(color: textColor)),
     );
   }
 }

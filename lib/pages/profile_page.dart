@@ -1,13 +1,24 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:O_potato/pages/profile_edit_page.dart';
+import 'login_page.dart';
+import 'profile_edit_page.dart';
 import 'bottom_nav_bar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:O_potato/pages/login_page.dart';
 import 'package:O_potato/user_service.dart';
+import 'package:O_potato/pages/topbar/following_page.dart';
+import 'package:O_potato/pages/topbar/check_in_page.dart';
+import 'package:O_potato/pages/topbar/bookmark_page.dart';
+import 'restaurant_view_page.dart';
+// import 'payment_page.dart';
+// import 'posted_offers_page.dart';
+// import 'menus_page.dart';
+// import 'review_page.dart';
+// import 'customer_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
+
+  static const String adminUID = '9augevirHjVzo8izlXsJba568782';
 
   @override
   Widget build(BuildContext context) {
@@ -23,10 +34,7 @@ class ProfilePage extends StatelessWidget {
 
     return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
       future: UserService().getUser(user.uid),
-      builder: (
-        context,
-        AsyncSnapshot<DocumentSnapshot<Map<String, dynamic>>> snapshot,
-      ) {
+      builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
@@ -35,7 +43,7 @@ class ProfilePage extends StatelessWidget {
 
         if (snapshot.hasError) {
           return Scaffold(
-            body: Center(child: Text('Error: ${snapshot.error}')),
+            body: Center(child: Text('Error: \${snapshot.error}')),
           );
         }
 
@@ -50,6 +58,48 @@ class ProfilePage extends StatelessWidget {
         String email = user.email ?? "No Email";
         String phoneNumber = userData['phone'] ?? "No Phone Number";
         String? profileImageUrl = userData['profile_image_url'];
+        String? userType =
+            user.uid == adminUID ? 'admin' : userData['user_type'] ?? 'unknown';
+
+        final List<_ProfileRoute> routes =
+            userType == 'customer'
+                ? [
+                  _ProfileRoute(
+                    'Following Restaurants',
+                    Icons.favorite,
+                    const FollowingPage(),
+                  ),
+                  _ProfileRoute(
+                    'Check-Ins',
+                    Icons.directions_walk,
+                    const CheckInPage(),
+                  ),
+                  _ProfileRoute(
+                    'Bookmarks',
+                    Icons.bookmark,
+                    const BookmarkPage(),
+                  ),
+                  _ProfileRoute('Favorites', Icons.star, const FollowingPage()),
+                ]
+                : userType == 'restaurant'
+                ? [
+                  _ProfileRoute(
+                    'Customer View',
+                    Icons.people,
+                    RestaurantViewPage(
+                      restaurantId: FirebaseAuth.instance.currentUser!.uid,
+                    ),
+                  ),
+                  // _ProfileRoute('Payment', Icons.payment, const PaymentPage()),
+                  // _ProfileRoute('Reviews', Icons.reviews, const ReviewPage()),
+                  // _ProfileRoute('Menu', Icons.menu_book, const MenusPage()),
+                ]
+                : [
+                  // _ProfileRoute('Payment', Icons.payment, const PaymentPage()),
+                  // _ProfileRoute('Customers', Icons.people_alt, const CustomerPage()),
+                  // _ProfileRoute('Offers & Combos', Icons.local_offer, const PostedOffersPage()),
+                  // _ProfileRoute('Reviews', Icons.reviews, const ReviewPage()),
+                ];
 
         return Scaffold(
           backgroundColor: Colors.white,
@@ -155,26 +205,13 @@ class ProfilePage extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 40),
-                        _buildProfileItem(
-                          context,
-                          'Favourite Restaurants',
-                          Icons.favorite,
-                        ),
-                        _buildProfileItem(
-                          context,
-                          'Outings',
-                          Icons.directions_walk,
-                        ),
-                        _buildProfileItem(
-                          context,
-                          'Saved Offers',
-                          Icons.local_offer,
-                        ),
-                        _buildProfileItem(
-                          context,
-                          'Clear History',
-                          Icons.history,
-                        ),
+                        for (final item in routes)
+                          _buildProfileItem(
+                            context,
+                            item.title,
+                            item.icon,
+                            routeWidget: item.widget,
+                          ),
                         const SizedBox(height: 24),
                         _buildProfileItem(
                           context,
@@ -206,6 +243,7 @@ class ProfilePage extends StatelessWidget {
     String title,
     IconData icon, {
     bool isLogout = false,
+    Widget? routeWidget,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -219,16 +257,22 @@ class ProfilePage extends StatelessWidget {
           ),
         ),
         trailing: const Icon(Icons.chevron_right),
-        onTap: isLogout ? () => _logout(context) : () {},
+        onTap:
+            isLogout
+                ? () async {
+                  await FirebaseAuth.instance.signOut();
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginPage()),
+                  );
+                }
+                : routeWidget != null
+                ? () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => routeWidget),
+                )
+                : null,
       ),
-    );
-  }
-
-  Future<void> _logout(BuildContext context) async {
-    await FirebaseAuth.instance.signOut();
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginPage()),
     );
   }
 
@@ -238,4 +282,12 @@ class ProfilePage extends StatelessWidget {
       MaterialPageRoute(builder: (context) => const EditProfilePage()),
     );
   }
+}
+
+class _ProfileRoute {
+  final String title;
+  final IconData icon;
+  final Widget widget;
+
+  _ProfileRoute(this.title, this.icon, this.widget);
 }

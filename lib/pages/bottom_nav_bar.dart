@@ -82,7 +82,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
     if (userType == 'customer') {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => ChatbotPage()),
+        MaterialPageRoute(builder: (context) => GeminiChatPage()),
       );
     } else if (userType == 'restaurant') {
       Navigator.push(

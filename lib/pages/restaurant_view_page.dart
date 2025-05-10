@@ -2,8 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'bottom_nav_bar.dart';
-// import 'menus_page.dart';
-// import 'review_page.dart';
+import 'menu.dart';
+import 'review_page.dart';
 
 class RestaurantViewPage extends StatefulWidget {
   final String restaurantId;
@@ -197,13 +197,29 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
                     // Buttons: Menu, Review, Follow/Unfollow
                     Row(
                       children: [
-                        _buildActionButton('Menu', () {}),
-                        //   Navigator.push(context, MaterialPageRoute(builder: (_) => const MenusPage()));
-                        // }),
+                        _buildActionButton('Menu', () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (_) => MenuPage(
+                                    restaurantId: widget.restaurantId,
+                                  ),
+                            ),
+                          );
+                        }),
                         const SizedBox(width: 12),
-                        _buildActionButton('Reviews', () {}),
-                        //   Navigator.push(context, MaterialPageRoute(builder: (_) => const ReviewPage()));
-                        // }),
+                        _buildActionButton('Reviews', () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (_) => ReviewPage(
+                                    restaurantId: widget.restaurantId,
+                                  ),
+                            ),
+                          );
+                        }),
                         if (_isCustomer) ...[
                           const SizedBox(width: 12),
                           _buildActionButton(
@@ -269,7 +285,7 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
                             fit: BoxFit.cover,
                           ),
                           title: Text(data['title']),
-                          subtitle: Text("à§³${data['price']}"),
+                          subtitle: Text("৳${data['price']}"),
                         ),
                       );
                     }),

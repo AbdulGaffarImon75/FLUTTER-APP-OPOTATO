@@ -177,7 +177,7 @@ class _AdvertisementPopupState extends State<AdvertisementPopup> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    '$title - $price',
+                    '$title - ৳$price',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,

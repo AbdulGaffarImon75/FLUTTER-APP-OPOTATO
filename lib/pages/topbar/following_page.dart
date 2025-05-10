@@ -136,7 +136,7 @@ class _FollowingPageState extends State<FollowingPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(title: const Text('Following'), centerTitle: true),
+      appBar: AppBar(title: const Text('Restaurants'), centerTitle: true),
       body:
           _isLoading
               ? const Center(child: CircularProgressIndicator())

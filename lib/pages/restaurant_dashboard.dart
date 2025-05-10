@@ -120,7 +120,7 @@ class _RestaurantDashboardPageState extends State<RestaurantDashboardPage> {
     if (user != null) {
       final offerData = {
         'name': _offerNameController.text,
-        'price': 'à§³${_offerPriceController.text}',
+        'price': '৳${_offerPriceController.text}',
         'imageURL': _imageUrlController.text,
         'timestamp': FieldValue.serverTimestamp(),
         'posted_by': restaurantName ?? '',

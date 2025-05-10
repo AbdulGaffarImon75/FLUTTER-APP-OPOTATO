@@ -230,7 +230,7 @@ class _AdvertisementPopupState extends State<AdvertisementPopup> {
                     onPressed: () {
                       setState(() => _visible = false);
                       _currentAdIndex++;
-                      Future.delayed(const Duration(seconds: 5), () {
+                      Future.delayed(const Duration(seconds: 300), () {
                         if (mounted && _unfollowedItems.isNotEmpty) {
                           _showPopup();
                         }

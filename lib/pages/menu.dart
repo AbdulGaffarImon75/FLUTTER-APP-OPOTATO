@@ -5,7 +5,7 @@ import 'bottom_nav_bar.dart';
 
 class MenuPage extends StatefulWidget {
   final String restaurantId;
-  MenuPage({super.key, required this.restaurantId});
+  const MenuPage({super.key, required this.restaurantId});
 
   @override
   State<MenuPage> createState() => _MenuPageState();

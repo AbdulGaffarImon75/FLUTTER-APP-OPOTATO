@@ -26,7 +26,7 @@ class _StatusPageState extends State<StatusPage> {
       setState(() {
         restaurants =
             snapshot.docs.map((doc) {
-              final data = doc.data() as Map<String, dynamic>;
+              final data = doc.data();
               return {
                 'id': doc.id,
                 'name': data['name'] ?? 'Unknown Restaurant',

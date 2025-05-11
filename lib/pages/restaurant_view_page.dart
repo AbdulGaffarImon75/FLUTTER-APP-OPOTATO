@@ -21,6 +21,7 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
   List<DocumentSnapshot> _combos = [];
   bool _isCustomer = false;
   bool _isFollowing = false;
+  bool _isCheckedIn = false;
   String? _customerName;
   bool _loading = true;
 
@@ -36,6 +37,7 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
     await _loadFollowStatus();
     await _fetchRestaurantOffers();
     await _fetchRestaurantCombos();
+    await _checkCheckInStatus();
     if (!mounted) return;
     setState(() => _loading = false);
   }
@@ -84,6 +86,54 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
     setState(() {
       _isFollowing = doc.exists;
     });
+  }
+
+  Future<void> _checkCheckInStatus() async {
+    if (!_isCustomer) return;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('check-ins')
+            .where('customer_id', isEqualTo: user.uid)
+            .where('restaurant_id', isEqualTo: widget.restaurantId)
+            .get();
+
+    if (!mounted) return;
+    setState(() {
+      _isCheckedIn = snapshot.docs.isNotEmpty;
+    });
+  }
+
+  Future<void> _toggleCheckIn() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || !_isCustomer) return;
+
+    final checkIns = FirebaseFirestore.instance.collection('check-ins');
+    final query =
+        await checkIns
+            .where('customer_id', isEqualTo: user.uid)
+            .where('restaurant_id', isEqualTo: widget.restaurantId)
+            .get();
+
+    if (_isCheckedIn && query.docs.isNotEmpty) {
+      for (var doc in query.docs) {
+        await checkIns.doc(doc.id).delete();
+      }
+      if (!mounted) return;
+      setState(() => _isCheckedIn = false);
+    } else {
+      await checkIns.add({
+        'customer_id': user.uid,
+        'customer_name': _customerName ?? '',
+        'restaurant_id': widget.restaurantId,
+        'restaurant_name': _name ?? '',
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+      if (!mounted) return;
+      setState(() => _isCheckedIn = true);
+    }
   }
 
   Future<void> _toggleFollow() async {
@@ -172,7 +222,9 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Restaurant logo, name, check-in
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         CircleAvatar(
                           radius: 40,
@@ -186,13 +238,49 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
                                   : null,
                         ),
                         const SizedBox(width: 16),
-                        Text(
-                          _name ?? 'Restaurant',
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _name ?? 'Restaurant',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
+                        if (_isCustomer)
+                          ElevatedButton(
+                            onPressed: _toggleCheckIn,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  _isCheckedIn
+                                      ? Colors.blue
+                                      : const Color.fromARGB(
+                                        255,
+                                        230,
+                                        220,
+                                        250,
+                                      ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                            child: Text(
+                              _isCheckedIn ? 'Checked In' : 'Check In',
+                              style: TextStyle(
+                                color:
+                                    _isCheckedIn ? Colors.white : Colors.black,
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                     const SizedBox(height: 24),

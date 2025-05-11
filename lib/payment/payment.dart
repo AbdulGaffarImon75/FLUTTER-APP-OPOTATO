@@ -95,7 +95,7 @@ class _PaymentPageState extends State<PaymentPage> {
       setState(() {
         restaurants =
             snapshot.docs.map((doc) {
-              final data = doc.data() as Map<String, dynamic>;
+              final data = doc.data();
               return {
                 ...data,
                 'id': doc.id,
@@ -152,7 +152,7 @@ class _PaymentPageState extends State<PaymentPage> {
               .doc(uid)
               .get();
       setState(() {
-        final data = updatedDoc.data() as Map<String, dynamic>?;
+        final data = updatedDoc.data();
         restaurantData =
             data != null
                 ? {

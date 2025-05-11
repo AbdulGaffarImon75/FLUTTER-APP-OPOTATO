@@ -80,13 +80,13 @@ class ProfilePage extends StatelessWidget {
                 : userType == 'restaurant'
                 ? [
                   _ProfileRoute(
-                    'Customer View',
+                    'Restaurant Profile',
                     Icons.people,
                     RestaurantViewPage(
                       restaurantId: FirebaseAuth.instance.currentUser!.uid,
                     ),
                   ),
-                  _ProfileRoute('Payment', Icons.bookmark, const PaymentPage()),
+                  _ProfileRoute('Payment', Icons.payment, const PaymentPage()),
                 ]
                 : [];
 

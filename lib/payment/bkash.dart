@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:bkash/bkash.dart';
 
 Future<void> onButtonTap(
   String selected, {
@@ -47,7 +44,7 @@ Future<void> bkashPayment(BuildContext context) async {
     print('bKash page navigation completed');
   } catch (e) {
     print('Error in bKash navigation: $e');
-    throw e;
+    rethrow;
   }
 
   // Placeholder for future payment processing when merchant number is available

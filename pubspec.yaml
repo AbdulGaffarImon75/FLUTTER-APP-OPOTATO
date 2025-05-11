@@ -45,7 +45,11 @@ dependencies:
   cloud_firestore: ^5.6.6
   string_similarity: ^2.0.0
   http: ^1.4.0  
-  
+
+  bkash: ^0.0.2
+  get:
+  webview_flutter:
+  url_launcher: ^6.1.10
   
   
   

@@ -130,12 +130,10 @@ class _SeatBookingPageState extends State<SeatBookingPage> {
           .set({'points': FieldValue.increment(50)}, SetOptions(merge: true));
     }
 
-
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Table booked successfully!')));
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -209,26 +207,32 @@ class _SeatBookingPageState extends State<SeatBookingPage> {
                         'Couple Table (2 seats)',
                         coupleTable,
                         (v) => setState(() => coupleTable = v),
-                        selectedRestaurantData!['2_people_seat'],
+                        ((selectedRestaurantData!['2_people_seat'] ?? 0) as num)
+                            .toInt(),
                       ),
                       _seatSelector(
                         'Table for Four (4 seats)',
                         tableForFour,
                         (v) => setState(() => tableForFour = v),
-                        selectedRestaurantData!['4_people_seat'],
+                        ((selectedRestaurantData!['4_people_seat'] ?? 0) as num)
+                            .toInt(),
                       ),
                       _seatSelector(
                         'Group Table (8 seats)',
                         groupTable,
                         (v) => setState(() => groupTable = v),
-                        selectedRestaurantData!['8_people_seat'],
+                        ((selectedRestaurantData!['8_people_seat'] ?? 0) as num)
+                            .toInt(),
                       ),
                       _seatSelector(
                         'Family Table (12 seats)',
                         familyTable,
                         (v) => setState(() => familyTable = v),
-                        selectedRestaurantData!['12_people_seat'],
+                        ((selectedRestaurantData!['12_people_seat'] ?? 0)
+                                as num)
+                            .toInt(),
                       ),
+
                       const SizedBox(height: 16),
                       Text(
                         'Total Seats Selected: ${_totalSelectedSeats()}',

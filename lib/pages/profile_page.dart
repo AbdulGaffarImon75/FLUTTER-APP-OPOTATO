@@ -9,6 +9,7 @@ import 'package:O_potato/pages/topbar/following_page.dart';
 import 'package:O_potato/pages/topbar/check_in_page.dart';
 import 'package:O_potato/pages/topbar/bookmark_page.dart';
 import 'restaurant_view_page.dart';
+import 'package:O_potato/payment/payment.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -85,6 +86,7 @@ class ProfilePage extends StatelessWidget {
                       restaurantId: FirebaseAuth.instance.currentUser!.uid,
                     ),
                   ),
+                  _ProfileRoute('Payment', Icons.bookmark, const PaymentPage()),
                 ]
                 : [];
 

@@ -36,6 +36,7 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
     await _loadFollowStatus();
     await _fetchRestaurantOffers();
     await _fetchRestaurantCombos();
+    if (!mounted) return;
     setState(() => _loading = false);
   }
 
@@ -79,6 +80,7 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
             .doc(widget.restaurantId)
             .get();
 
+    if (!mounted) return;
     setState(() {
       _isFollowing = doc.exists;
     });
@@ -125,6 +127,7 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
           });
     }
 
+    if (!mounted) return;
     setState(() {
       _isFollowing = !_isFollowing;
     });
@@ -137,6 +140,7 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
             .where('posted_by_id', isEqualTo: widget.restaurantId)
             .orderBy('timestamp', descending: true)
             .get();
+    if (!mounted) return;
     setState(() => _offers = snapshot.docs);
   }
 
@@ -147,6 +151,7 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
             .where('vendor', isEqualTo: _name)
             .orderBy('timestamp', descending: true)
             .get();
+    if (!mounted) return;
     setState(() => _combos = snapshot.docs);
   }
 
@@ -167,7 +172,6 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Logo and Name
                     Row(
                       children: [
                         CircleAvatar(
@@ -191,10 +195,7 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 24),
-
-                    // Buttons: Menu, Review, Follow/Unfollow
                     Row(
                       children: [
                         _buildActionButton('Menu', () {
@@ -235,10 +236,7 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
                         ],
                       ],
                     ),
-
                     const SizedBox(height: 32),
-
-                    // Offers
                     const Text(
                       'Offers',
                       style: TextStyle(
@@ -262,10 +260,7 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
                         ),
                       );
                     }),
-
                     const SizedBox(height: 24),
-
-                    // Combos
                     const Text(
                       'Combos',
                       style: TextStyle(

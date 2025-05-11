@@ -121,10 +121,21 @@ class _SeatBookingPageState extends State<SeatBookingPage> {
 
     await _fetchRestaurantData(selectedRestaurant!);
 
+    // ✅ Add 50 points to the user
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      await FirebaseFirestore.instance
+          .collection('user_points')
+          .doc(currentUser.uid)
+          .set({'points': FieldValue.increment(50)}, SetOptions(merge: true));
+    }
+
+
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Table booked successfully!')));
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -142,7 +153,7 @@ class _SeatBookingPageState extends State<SeatBookingPage> {
         backgroundColor: const Color.fromARGB(255, 191, 160, 244),
       ),
       backgroundColor: Colors.white,
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 80.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -245,7 +256,7 @@ class _SeatBookingPageState extends State<SeatBookingPage> {
             ],
           ],
         ),
-      ),
+      ), //99
       bottomNavigationBar: const BottomNavBar(activeIndex: 1),
     );
   }

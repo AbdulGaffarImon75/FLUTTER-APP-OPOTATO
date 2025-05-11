@@ -62,19 +62,41 @@ class _ReviewPageState extends State<ReviewPage> {
     final text = _controller.text.trim();
     if (!_isCustomer || text.isEmpty) return;
     final user = FirebaseAuth.instance.currentUser!;
-    await FirebaseFirestore.instance
+    final reviewRef = FirebaseFirestore.instance
         .collection('rest')
         .doc(widget.restaurantId)
-        .collection('reviews')
-        .add({
-          'userId': user.uid,
-          'userName': _customerName ?? '',
-          'userImage': _customerImage ?? '',
-          'text': text,
-          'timestamp': FieldValue.serverTimestamp(),
-        });
+        .collection('reviews');
+
+    await reviewRef.add({
+      'userId': user.uid,
+      'userName': _customerName ?? '',
+      'userImage': _customerImage ?? '',
+      'text': text,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+
     _controller.clear();
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('user_points')
+          .doc(user.uid)
+          .set({'points': FieldValue.increment(30)}, SetOptions(merge: true));
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('+30 points added for your review!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Review posted, but failed to add points')),
+        );
+      }
+    }
   }
+
 
   String _formatDateWithSuffix(DateTime date) {
     final day = date.day;

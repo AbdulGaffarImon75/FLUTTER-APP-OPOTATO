@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'bottom_nav_bar.dart';
 
 class RestaurantNotificationPage extends StatefulWidget {
   const RestaurantNotificationPage({super.key});
@@ -52,6 +53,7 @@ class _RestaurantNotificationPageState
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Notifications'), centerTitle: true),
+      bottomNavigationBar: const BottomNavBar(activeIndex: 3),
       body:
           _isLoading
               ? const Center(child: CircularProgressIndicator())

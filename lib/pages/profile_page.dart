@@ -1,13 +1,20 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:O_potato/pages/profile_edit_page.dart';
+import 'login_page.dart';
+import 'profile_edit_page.dart';
 import 'bottom_nav_bar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:O_potato/pages/login_page.dart';
 import 'package:O_potato/user_service.dart';
+import 'package:O_potato/pages/topbar/following_page.dart';
+import 'package:O_potato/pages/topbar/check_in_page.dart';
+import 'package:O_potato/pages/topbar/bookmark_page.dart';
+import 'restaurant_view_page.dart';
+import 'package:O_potato/payment/payment.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
+
+  static const String adminUID = '9augevirHjVzo8izlXsJba568782';
 
   @override
   Widget build(BuildContext context) {
@@ -23,10 +30,7 @@ class ProfilePage extends StatelessWidget {
 
     return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
       future: UserService().getUser(user.uid),
-      builder: (
-        context,
-        AsyncSnapshot<DocumentSnapshot<Map<String, dynamic>>> snapshot,
-      ) {
+      builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
@@ -35,7 +39,7 @@ class ProfilePage extends StatelessWidget {
 
         if (snapshot.hasError) {
           return Scaffold(
-            body: Center(child: Text('Error: ${snapshot.error}')),
+            body: Center(child: Text('Error: \${snapshot.error}')),
           );
         }
 
@@ -50,152 +54,152 @@ class ProfilePage extends StatelessWidget {
         String email = user.email ?? "No Email";
         String phoneNumber = userData['phone'] ?? "No Phone Number";
         String? profileImageUrl = userData['profile_image_url'];
+        String? userType =
+            user.uid == adminUID ? 'admin' : userData['user_type'] ?? 'unknown';
+
+        final List<_ProfileRoute> routes =
+            userType == 'customer'
+                ? [
+                  _ProfileRoute(
+                    'Following Restaurants',
+                    Icons.favorite,
+                    const FollowingPage(),
+                  ),
+                  _ProfileRoute(
+                    'Check-Ins',
+                    Icons.directions_walk,
+                    const CheckInPage(),
+                  ),
+                  _ProfileRoute(
+                    'Bookmarks',
+                    Icons.bookmark,
+                    const BookmarkPage(),
+                  ),
+                  _ProfileRoute('Favorites', Icons.star, const FollowingPage()),
+                ]
+                : userType == 'restaurant'
+                ? [
+                  _ProfileRoute(
+                    'Restaurant Profile',
+                    Icons.people,
+                    RestaurantViewPage(
+                      restaurantId: FirebaseAuth.instance.currentUser!.uid,
+                    ),
+                  ),
+                  _ProfileRoute('Payment', Icons.payment, const PaymentPage()),
+                ]
+                : [];
 
         return Scaffold(
           backgroundColor: Colors.white,
           body: SafeArea(
-            child: Stack(
-              children: [
-                SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 24),
-                        Row(
-                          children: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text(
-                                'Back',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.blue,
-                                ),
-                              ),
-                            ),
-                            const Spacer(),
-                          ],
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text(
+                          'Back',
+                          style: TextStyle(fontSize: 16, color: Colors.blue),
                         ),
-                        const SizedBox(height: 16),
-                        const Center(
-                          child: Text(
-                            'My Profile',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        Center(
-                          child: CircleAvatar(
-                            radius: 50,
-                            backgroundImage:
-                                profileImageUrl != null &&
-                                        profileImageUrl.isNotEmpty
-                                    ? NetworkImage(profileImageUrl)
-                                    : null,
-                            child:
-                                (profileImageUrl == null ||
-                                        profileImageUrl.isEmpty)
-                                    ? const Icon(Icons.person, size: 50)
-                                    : null,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Center(
-                          child: Text(
-                            displayName,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Center(
-                          child: Text(
-                            email,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Center(
-                          child: Text(
-                            phoneNumber,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        Center(
-                          child: OutlinedButton(
-                            onPressed: () => openPage(context),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 32,
-                                vertical: 12,
-                              ),
-                              side: const BorderSide(color: Colors.blue),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                            ),
-                            child: const Text(
-                              'Edit Profile',
-                              style: TextStyle(color: Colors.blue),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 40),
-                        _buildProfileItem(
-                          context,
-                          'Favourite Restaurants',
-                          Icons.favorite,
-                        ),
-                        _buildProfileItem(
-                          context,
-                          'Outings',
-                          Icons.directions_walk,
-                        ),
-                        _buildProfileItem(
-                          context,
-                          'Saved Offers',
-                          Icons.local_offer,
-                        ),
-                        _buildProfileItem(
-                          context,
-                          'Clear History',
-                          Icons.history,
-                        ),
-                        const SizedBox(height: 24),
-                        _buildProfileItem(
-                          context,
-                          'Log Out',
-                          Icons.logout,
-                          isLogout: true,
-                        ),
-                        const SizedBox(height: 80),
-                      ],
+                      ),
+                      const Spacer(),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Center(
+                    child: Text(
+                      'My Profile',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-                const Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: BottomNavBar(activeIndex: 4),
-                ),
-              ],
+                  const SizedBox(height: 32),
+                  Center(
+                    child: CircleAvatar(
+                      radius: 50,
+                      backgroundImage:
+                          profileImageUrl != null && profileImageUrl.isNotEmpty
+                              ? NetworkImage(profileImageUrl)
+                              : null,
+                      child:
+                          (profileImageUrl == null || profileImageUrl.isEmpty)
+                              ? const Icon(Icons.person, size: 50)
+                              : null,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: Text(
+                      displayName,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Center(
+                    child: Text(
+                      email,
+                      style: const TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Center(
+                    child: Text(
+                      phoneNumber,
+                      style: const TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Center(
+                    child: OutlinedButton(
+                      onPressed: () => openPage(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 12,
+                        ),
+                        side: const BorderSide(color: Colors.blue),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      child: const Text(
+                        'Edit Profile',
+                        style: TextStyle(color: Colors.blue),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                  for (final item in routes)
+                    _buildProfileItem(
+                      context,
+                      item.title,
+                      item.icon,
+                      routeWidget: item.widget,
+                    ),
+                  const SizedBox(height: 24),
+                  _buildProfileItem(
+                    context,
+                    'Log Out',
+                    Icons.logout,
+                    isLogout: true,
+                  ),
+                  const SizedBox(height: 80),
+                ],
+              ),
             ),
           ),
+          bottomNavigationBar: const BottomNavBar(activeIndex: 4),
         );
       },
     );
@@ -206,6 +210,7 @@ class ProfilePage extends StatelessWidget {
     String title,
     IconData icon, {
     bool isLogout = false,
+    Widget? routeWidget,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -219,16 +224,22 @@ class ProfilePage extends StatelessWidget {
           ),
         ),
         trailing: const Icon(Icons.chevron_right),
-        onTap: isLogout ? () => _logout(context) : () {},
+        onTap:
+            isLogout
+                ? () async {
+                  await FirebaseAuth.instance.signOut();
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginPage()),
+                  );
+                }
+                : routeWidget != null
+                ? () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => routeWidget),
+                )
+                : null,
       ),
-    );
-  }
-
-  Future<void> _logout(BuildContext context) async {
-    await FirebaseAuth.instance.signOut();
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginPage()),
     );
   }
 
@@ -238,4 +249,12 @@ class ProfilePage extends StatelessWidget {
       MaterialPageRoute(builder: (context) => const EditProfilePage()),
     );
   }
+}
+
+class _ProfileRoute {
+  final String title;
+  final IconData icon;
+  final Widget widget;
+
+  _ProfileRoute(this.title, this.icon, this.widget);
 }

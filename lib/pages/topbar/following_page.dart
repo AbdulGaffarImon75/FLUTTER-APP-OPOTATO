@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:O_potato/pages/bottom_nav_bar.dart';
+import 'package:O_potato/pages/restaurant_view_page.dart';
 
 class FollowingPage extends StatefulWidget {
   const FollowingPage({super.key});
@@ -106,7 +107,6 @@ class _FollowingPageState extends State<FollowingPage> {
 
     if (isCurrentlyFollowing) {
       await followRef.delete();
-
       await FirebaseFirestore.instance
           .collection('notifications')
           .doc(restaurantId)
@@ -118,7 +118,6 @@ class _FollowingPageState extends State<FollowingPage> {
           });
     } else {
       await followRef.set({'timestamp': FieldValue.serverTimestamp()});
-
       await FirebaseFirestore.instance
           .collection('notifications')
           .doc(restaurantId)
@@ -137,7 +136,7 @@ class _FollowingPageState extends State<FollowingPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(title: const Text('Following'), centerTitle: true),
+      appBar: AppBar(title: const Text('Restaurants'), centerTitle: true),
       body:
           _isLoading
               ? const Center(child: CircularProgressIndicator())
@@ -152,64 +151,77 @@ class _FollowingPageState extends State<FollowingPage> {
                 itemBuilder: (context, index) {
                   final restaurant = _restaurants[index];
 
-                  return Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.1),
-                          spreadRadius: 1,
-                          blurRadius: 3,
-                          offset: const Offset(0, 1),
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (_) => RestaurantViewPage(
+                                restaurantId: restaurant['uid'],
+                              ),
                         ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          backgroundImage:
-                              restaurant['image'].isNotEmpty
-                                  ? NetworkImage(restaurant['image'])
-                                  : null,
-                          radius: 25,
-                          child:
-                              restaurant['image'].isEmpty
-                                  ? const Icon(Icons.person, size: 30)
-                                  : null,
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Text(
-                            restaurant['name'],
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade300),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.1),
+                            spreadRadius: 1,
+                            blurRadius: 3,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            backgroundImage:
+                                restaurant['image'].isNotEmpty
+                                    ? NetworkImage(restaurant['image'])
+                                    : null,
+                            radius: 25,
+                            child:
+                                restaurant['image'].isEmpty
+                                    ? const Icon(Icons.person, size: 30)
+                                    : null,
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Text(
+                              restaurant['name'],
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
-                        ),
-                        TextButton(
-                          onPressed: () => _toggleFollow(restaurant['uid']),
-                          style: TextButton.styleFrom(
-                            backgroundColor:
-                                restaurant['isFollowing']
-                                    ? Colors.grey.shade300
-                                    : Colors.green,
-                            minimumSize: const Size(80, 30),
-                          ),
-                          child: Text(
-                            restaurant['isFollowing'] ? 'Unfollow' : 'Follow',
-                            style: TextStyle(
-                              color:
+                          TextButton(
+                            onPressed: () => _toggleFollow(restaurant['uid']),
+                            style: TextButton.styleFrom(
+                              backgroundColor:
                                   restaurant['isFollowing']
-                                      ? Colors.black
-                                      : Colors.white,
+                                      ? Colors.grey.shade300
+                                      : Colors.green,
+                              minimumSize: const Size(80, 30),
+                            ),
+                            child: Text(
+                              restaurant['isFollowing'] ? 'Unfollow' : 'Follow',
+                              style: TextStyle(
+                                color:
+                                    restaurant['isFollowing']
+                                        ? Colors.black
+                                        : Colors.white,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   );
                 },

@@ -17,4 +17,26 @@ class UserService {
   Future<void> updateUser(String uid, Map<String, dynamic> data) async {
     await _db.collection('users').doc(uid).update(data);
   }
+
+  Future<void> addPoints(String userId, int points) async {
+  // This ensures the document exists before incrementing
+    await _db.collection('user_points').doc(userId).set({
+        'points': FieldValue.increment(points),
+      }, SetOptions(merge: true));
+    }
+
+    Future<int> getPoints(String userId) async {
+      final doc = await _db.collection('user_points').doc(userId).get();
+      return doc.exists ? (doc.data()?['points'] ?? 0) : 0;
+    }
+
+  Future<bool> redeemPoints(String userId, int points) async {
+    final current = await getPoints(userId);
+    if (current < points) return false;
+    
+    await _db.collection('user_points').doc(userId).update({
+      'points': FieldValue.increment(-points),
+    });
+    return true;
+  }
 }

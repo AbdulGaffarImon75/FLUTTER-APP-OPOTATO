@@ -6,10 +6,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class GeminiChatPage extends StatefulWidget {
   const GeminiChatPage({super.key});
 
+class GeminiChatPage extends StatefulWidget {
+  const GeminiChatPage({super.key});
+
   @override
+  State<GeminiChatPage> createState() => _GeminiChatPageState();
   State<GeminiChatPage> createState() => _GeminiChatPageState();
 }
 
+class _GeminiChatPageState extends State<GeminiChatPage> {
 class _GeminiChatPageState extends State<GeminiChatPage> {
   final TextEditingController _controller = TextEditingController();
   final List<Map<String, String>> _messages = [];
@@ -17,8 +22,11 @@ class _GeminiChatPageState extends State<GeminiChatPage> {
   void _sendMessage() async {
     final prompt = _controller.text.trim();
     if (prompt.isEmpty) return;
+    final prompt = _controller.text.trim();
+    if (prompt.isEmpty) return;
 
     setState(() {
+      _messages.add({'role': 'user', 'text': prompt});
       _messages.add({'role': 'user', 'text': prompt});
       _controller.clear();
     });
@@ -58,11 +66,13 @@ class _GeminiChatPageState extends State<GeminiChatPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Gemini Chat")),
+      appBar: AppBar(title: const Text("Gemini Chat")),
       body: Column(
         children: [
           Expanded(
             child: ListView.builder(
               itemCount: _messages.length,
+              itemBuilder: (_, index) {
               itemBuilder: (_, index) {
                 final msg = _messages[index];
                 final isUser = msg['role'] == 'user';
@@ -72,16 +82,22 @@ class _GeminiChatPageState extends State<GeminiChatPage> {
                   child: Container(
                     margin: const EdgeInsets.all(8),
                     padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: isUser ? Colors.blue[100] : Colors.grey[200],
                       borderRadius: BorderRadius.circular(10),
+                      color: isUser ? Colors.blue[100] : Colors.grey[200],
+                      borderRadius: BorderRadius.circular(10),
                     ),
+                    child: Text(msg['text'] ?? ''),
                     child: Text(msg['text'] ?? ''),
                   ),
                 );
               },
             ),
           ),
+          const Divider(height: 1),
           const Divider(height: 1),
           Padding(
             padding: const EdgeInsets.all(8.0),
@@ -93,8 +109,15 @@ class _GeminiChatPageState extends State<GeminiChatPage> {
                     decoration: const InputDecoration(
                       hintText: "Ask Gemini...",
                       border: OutlineInputBorder(),
+                    decoration: const InputDecoration(
+                      hintText: "Ask Gemini...",
+                      border: OutlineInputBorder(),
                     ),
                   ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.send),
+                  onPressed: _sendMessage,
                 ),
                 IconButton(
                   icon: const Icon(Icons.send),

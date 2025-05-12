@@ -260,7 +260,7 @@ class _HomePageState extends State<HomePage> {
                                 ),
                               );
                             }),
-                            _actionButton(Icons.person_add, "Restaurants", () {
+                            _actionButton(Icons.restaurant, "Restaurants", () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(

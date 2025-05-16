@@ -162,6 +162,9 @@ class _SignupPageState extends State<SignupPage> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: _onSignup,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                    ),
                     child: const Text('Sign up'),
                   ),
                 ),

@@ -21,7 +21,7 @@ class _SeatBookingPageState extends State<SeatBookingPage> {
   int familyTable = 0;
 
   List<String> restaurantNames = [];
-  Map<String, String> restaurantDocIds = {}; // name -> uid
+  Map<String, String> restaurantDocIds = {};
 
   @override
   void initState() {

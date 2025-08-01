@@ -1,9 +1,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+<uses-permission android:name="android.permission.INTERNET" />
+
 
     <application
         android:label="O-Potato"
         android:icon="@mipmap/ic_launcher"
         android:requestLegacyExternalStorage="true">
+        <uses-library android:name="org.apache.http.legacy" android:required="false"/>
+        <meta-data android:name="com.google.android.geo.API_KEY"
+               android:value="AIzaSyAL_v8YpJplSy3KPes5esk3UShqQsm3CUs"/>
 
         <activity
             android:name=".MainActivity"

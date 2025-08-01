@@ -12,6 +12,7 @@ import 'topbar/combos_page.dart';
 import 'topbar/check_in_page.dart';
 import 'advertisement.dart';
 import 'search_results.dart';
+import 'customer_map_page.dart';
 
 class Cuisine {
   final String label;
@@ -265,6 +266,14 @@ class _HomePageState extends State<HomePage> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (_) => const FollowingPage(),
+                                ),
+                              );
+                            }),
+                            _actionButton(Icons.map, "Maps", () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => CustomerMapPage(),
                                 ),
                               );
                             }),

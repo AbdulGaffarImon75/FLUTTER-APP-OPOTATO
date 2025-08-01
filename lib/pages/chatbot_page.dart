@@ -31,7 +31,6 @@ class _GeminiChatPageState extends State<GeminiChatPage> {
       return;
     }
 
-    // 🔹 Step 1: Fetch user data from Firestore
     final userDoc =
         await FirebaseFirestore.instance
             .collection('users')
@@ -42,7 +41,6 @@ class _GeminiChatPageState extends State<GeminiChatPage> {
     final selectedCuisine =
         userData?['preferred_cuisine'] ?? 'Pizza, Burger, Wrap';
 
-    // 🔹 Step 2: Pass to Gemini
     final geminiService = GeminiTalkService();
     final response = await geminiService.getResponse(
       prompt,

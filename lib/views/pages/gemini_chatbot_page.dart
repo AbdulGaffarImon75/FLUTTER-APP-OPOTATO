@@ -21,34 +21,7 @@ class _GeminiChatPageState extends State<GeminiChatPage> {
       _inputCtrl.clear();
     });
 
-<<<<<<< HEAD:lib/pages/chatbot_page.dart
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      setState(() {
-        _messages.add({'role': 'gemini', 'text': 'You need to log in first.'});
-      });
-      return;
-    }
-
-    final userDoc =
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-    final userData = userDoc.data();
-
-    final selectedCuisine =
-        userData?['preferred_cuisine'] ?? 'Pizza, Burger, Wrap';
-
-    final geminiService = GeminiTalkService();
-    final response = await geminiService.getResponse(
-      prompt,
-      selectedCuisine: selectedCuisine,
-    );
-
-=======
     final reply = await _ctrl.getResponse(text);
->>>>>>> e8c9f4ad8d4a1426e98f13a725b471eef9b3abc4:lib/views/pages/gemini_chatbot_page.dart
     setState(() {
       _messages.add({'role': 'gemini', 'text': reply});
     });

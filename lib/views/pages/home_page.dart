@@ -1,12 +1,17 @@
-// views/pages/home_page.dart
+// lib/views/pages/home_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 import '../../controllers/home_controller.dart';
+import '../../controllers/cart_item_controller.dart'; // <- keep as you have it
 import '../../models/cuisine_model.dart';
 import '../../models/combo_model.dart';
 import '../../models/offer_model.dart';
 import '../../models/restaurant_model.dart';
 import '../../models/billboard_model.dart';
+
 import 'bottom_nav_bar.dart';
 import 'cuisines/kacchi_page.dart';
 import 'cuisines/burger_page.dart';
@@ -19,6 +24,7 @@ import 'topbar/combos_page.dart';
 import 'topbar/check_in_page.dart';
 import 'advertisement_popup.dart';
 import 'search_results_page.dart';
+import 'package:O_potato/views/cart_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -29,6 +35,8 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final HomeController _ctrl = HomeController();
   final TextEditingController _searchCtrl = TextEditingController();
+  final CartController _cart = CartController();
+
   String _query = '';
   List<CuisineModel> _cuisines = [];
   List<ComboModel> _combos = [];
@@ -64,6 +72,65 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
+  }
+
+  // ---- ACCESS CHECK (same logic as FollowingController) ----
+  Future<bool> _isCurrentUserCustomer() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return false;
+    final doc =
+        await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    return doc.data()?['user_type'] == 'customer';
+  }
+
+  // Cart: customer-only
+  Future<void> _openCartIfAllowed() async {
+    final ok = await _isCurrentUserCustomer();
+    if (!mounted) return;
+    if (ok) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const CartPage()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Only customers can access the cart.')),
+      );
+    }
+  }
+
+  // Restaurants: customer-only
+  Future<void> _openRestaurantsIfAllowed() async {
+    final ok = await _isCurrentUserCustomer();
+    if (!mounted) return;
+    if (ok) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const FollowingPage()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Only customers can view and follow restaurants.'),
+        ),
+      );
+    }
+  }
+
+  // Rewards: customer-only
+  Future<void> _openRewardsIfAllowed() async {
+    final ok = await _isCurrentUserCustomer();
+    if (!mounted) return;
+    if (ok) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const RewardsPage()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Only customers can access Rewards.')),
+      );
+    }
   }
 
   @override
@@ -113,11 +180,14 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // --- Search bar with cart button & live badge ---
   Widget _buildSearchBar() {
     return Row(
       children: [
         Image.asset('assets/logo.png', width: 40, height: 40),
         const SizedBox(width: 10),
+
+        // Shorter search field
         Expanded(
           child: TextField(
             controller: _searchCtrl,
@@ -127,11 +197,20 @@ class _HomePageState extends State<HomePage> {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 0,
+              ),
               filled: true,
               fillColor: Colors.grey[200],
             ),
           ),
         ),
+
+        const SizedBox(width: 10),
+
+        // Cart button with badge & access guard
+        _CartIconButton(cart: _cart, onTap: _openCartIfAllowed),
       ],
     );
   }
@@ -140,24 +219,18 @@ class _HomePageState extends State<HomePage> {
     scrollDirection: Axis.horizontal,
     child: Row(
       children: [
-        _btn(Icons.star, 'Rewards', () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const RewardsPage()),
-          );
-        }),
+        _btn(Icons.star, 'Rewards', _openRewardsIfAllowed), // guarded
         _btn(Icons.local_offer, 'Offers', () {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const OffersPage()),
           );
         }),
-        _btn(Icons.restaurant, 'Restaurants', () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const FollowingPage()),
-          );
-        }),
+        _btn(
+          Icons.restaurant,
+          'Restaurants',
+          _openRestaurantsIfAllowed,
+        ), // guarded
         _btn(Icons.shopping_bag, 'Combos', () {
           Navigator.push(
             context,
@@ -320,4 +393,54 @@ class _HomePageState extends State<HomePage> {
       ),
     ),
   );
+}
+
+// --- small widget for the cart icon + live badge ---
+class _CartIconButton extends StatelessWidget {
+  final CartController cart;
+  final Future<void> Function() onTap; // guarded nav callback
+  const _CartIconButton({required this.cart, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<int>(
+      stream: cart.cartCountStream(),
+      builder: (context, snap) {
+        final count = snap.data ?? 0;
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            IconButton(
+              tooltip: 'Cart',
+              icon: const Icon(Icons.shopping_cart_outlined),
+              onPressed: () => onTap(),
+            ),
+            if (count > 0)
+              Positioned(
+                right: 6,
+                top: 6,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '$count',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
 }

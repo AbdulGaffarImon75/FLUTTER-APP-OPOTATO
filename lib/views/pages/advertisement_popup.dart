@@ -47,7 +47,7 @@ class _AdvertisementPopupState extends State<AdvertisementPopup> {
   void _closePopup() {
     setState(() => _visible = false);
     _currentIndex++;
-    Future.delayed(const Duration(seconds: 10), () {
+    Future.delayed(const Duration(seconds: 500), () {
       if (mounted && _items.isNotEmpty) _showPopup();
     });
   }

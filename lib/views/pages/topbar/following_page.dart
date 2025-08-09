@@ -43,11 +43,7 @@ class _FollowingPageState extends State<FollowingPage> {
             return const Center(child: CircularProgressIndicator());
           }
           final list = snap.data ?? [];
-          if (list.isEmpty) {
-            return const Center(
-              child: Text('Only customers can follow restaurants.'),
-            );
-          }
+
           return ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: list.length,

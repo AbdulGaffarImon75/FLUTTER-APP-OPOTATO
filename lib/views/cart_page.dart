@@ -5,8 +5,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../controllers/cart_item_controller.dart';
+import '../../controllers/orders_controller.dart'; // NEW
 import '../../models/cart_item_model.dart';
 import 'package:O_potato/views/pages/bottom_nav_bar.dart';
+import 'package:O_potato/views/pages/bkash_payment_page.dart'; // NEW
+import 'package:O_potato/views/orders_view_page.dart'; // NEW
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
@@ -17,6 +20,7 @@ class CartPage extends StatefulWidget {
 
 class _CartPageState extends State<CartPage> {
   final _ctrl = CartController();
+  final _ordersCtrl = OrdersController(); // NEW
   late Future<List<CartItem>> _future;
 
   @override
@@ -56,6 +60,60 @@ class _CartPageState extends State<CartPage> {
 
   int _total(List<CartItem> items) =>
       items.fold(0, (sum, it) => sum + it.priceValue * it.quantity);
+
+  // ===== Checkout alert (pattern matches RestaurantViewPage dialog style) =====
+  Future<void> _onCheckout() async {
+    final choice = await showDialog<String>(
+      context: context,
+      builder:
+          (_) => AlertDialog(
+            title: const Text('Choose payment method'),
+            content: const Text('How would you like to pay?'),
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, 'cod'),
+                child: const Text('Cash on Delivery'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, 'bkash'),
+                child: const Text('Pay with bKash'),
+              ),
+            ],
+          ),
+    );
+
+    if (!mounted || choice == null) return;
+
+    if (choice == 'bkash') {
+      // Navigate to bKash flow (place the order there after successful payment)
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const BkashPaymentPage()),
+      );
+    } else if (choice == 'cod') {
+      // Create order from current cart, clear cart, then show success + go to Orders
+      final orderId = await _ordersCtrl.placeOrderFromCart();
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            orderId == null
+                ? 'Your cart is empty.'
+                : 'Your order has been placed.',
+          ),
+        ),
+      );
+
+      if (orderId != null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const OrdersViewPage()),
+        );
+      }
+    }
+  }
+  // ==========================================================================
 
   @override
   Widget build(BuildContext context) {
@@ -152,14 +210,7 @@ class _CartPageState extends State<CartPage> {
                 ),
                 const SizedBox(height: 8),
                 ElevatedButton(
-                  onPressed: () {
-                    // TODO: hook up your checkout / order placement
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Checkout is not implemented yet.'),
-                      ),
-                    );
-                  },
+                  onPressed: _onCheckout, // <-- opens picker & handles flow
                   child: const Text('Proceed to Checkout'),
                 ),
               ],

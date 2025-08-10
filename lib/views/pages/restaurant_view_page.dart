@@ -131,7 +131,7 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
               'Do you want to remove them and add this item instead?',
             ),
             actions: [
-              TextButton(
+              ElevatedButton(
                 onPressed: () => Navigator.pop(context, false),
                 child: const Text('Cancel'),
               ),

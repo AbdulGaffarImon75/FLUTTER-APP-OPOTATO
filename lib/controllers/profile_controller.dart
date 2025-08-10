@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../views/pages/topbar/following_page.dart';
-import '../views/pages/topbar/check_in_page.dart';
+import '../views/orders_view_page.dart';
 import '../views/pages/topbar/bookmark_page.dart';
 import '../views/pages/restaurant_view_page.dart';
 import '../views/pages/profile_edit_page.dart';
@@ -43,7 +43,7 @@ class ProfileController {
           Icons.favorite,
           const FollowingPage(),
         ),
-        ProfileRoute('Check-Ins', Icons.directions_walk, const CheckInPage()),
+        ProfileRoute('Orders', Icons.food_bank, const OrdersViewPage()),
         ProfileRoute('Bookmarks', Icons.bookmark, const BookmarkPage()),
         ProfileRoute('Rewards', Icons.star, const RewardsPage()),
       ];

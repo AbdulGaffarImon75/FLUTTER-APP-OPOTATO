@@ -21,6 +21,7 @@ import 'topbar/rewards_page.dart';
 import 'topbar/offers_page.dart';
 import 'topbar/following_page.dart';
 import 'topbar/combos_page.dart';
+import 'topbar/check_in_page.dart';
 import 'advertisement_popup.dart';
 import 'search_results_page.dart';
 import 'package:O_potato/views/cart_page.dart';
@@ -128,6 +129,22 @@ class _HomePageState extends State<HomePage> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Only customers can access Rewards.')),
+      );
+    }
+  }
+
+  // Checked-In: customer-only
+  Future<void> _openCheckedInIfAllowed() async {
+    final ok = await _isCurrentUserCustomer();
+    if (!mounted) return;
+    if (ok) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const CheckInPage()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Only customers can access Checked-in.')),
       );
     }
   }
@@ -267,6 +284,7 @@ class _HomePageState extends State<HomePage> {
             MaterialPageRoute(builder: (_) => const CombosPage()),
           );
         }),
+        _btn(Icons.room_outlined, 'Checked-In', _openCheckedInIfAllowed),
       ],
     ),
   );

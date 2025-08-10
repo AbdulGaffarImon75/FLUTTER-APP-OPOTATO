@@ -21,7 +21,6 @@ import 'topbar/rewards_page.dart';
 import 'topbar/offers_page.dart';
 import 'topbar/following_page.dart';
 import 'topbar/combos_page.dart';
-import 'topbar/check_in_page.dart';
 import 'advertisement_popup.dart';
 import 'search_results_page.dart';
 import 'package:O_potato/views/cart_page.dart';
@@ -133,6 +132,37 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // --------- open cuisine by label ----------
+  void _openCuisine(CuisineModel c) {
+    final name = c.label.trim().toLowerCase();
+    Widget? page;
+    switch (name) {
+      case 'kacchi':
+        page = const KacchiPage();
+        break;
+      case 'burger':
+        page = const BurgerPage();
+        break;
+      case 'wrap':
+        page = const WrapsPage();
+        break;
+      case 'pizza':
+        page = const PizzaPage();
+        break;
+      default:
+        page = null; // not wired yet
+    }
+
+    if (page != null) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => page!));
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('“${c.label}” is coming soon.')));
+    }
+  }
+  // ------------------------------------------------
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -237,12 +267,6 @@ class _HomePageState extends State<HomePage> {
             MaterialPageRoute(builder: (_) => const CombosPage()),
           );
         }),
-        _btn(Icons.location_on_rounded, 'Check Ins', () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const CheckInPage()),
-          );
-        }),
       ],
     ),
   );
@@ -297,19 +321,23 @@ class _HomePageState extends State<HomePage> {
 
   Widget _cuisineCard(CuisineModel c) => Padding(
     padding: const EdgeInsets.only(right: 12),
-    child: Column(
-      children: [
-        ClipOval(
-          child: Image.network(
-            c.imageUrl,
-            width: 60,
-            height: 60,
-            fit: BoxFit.cover,
+    child: InkWell(
+      borderRadius: BorderRadius.circular(40),
+      onTap: () => _openCuisine(c), // <-- navigate on tap
+      child: Column(
+        children: [
+          ClipOval(
+            child: Image.network(
+              c.imageUrl,
+              width: 60,
+              height: 60,
+              fit: BoxFit.cover,
+            ),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(c.label),
-      ],
+          const SizedBox(height: 4),
+          Text(c.label),
+        ],
+      ),
     ),
   );
 

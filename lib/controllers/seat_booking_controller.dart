@@ -52,13 +52,14 @@ class SeatBookingController {
         total <= avail['available']!;
   }
 
-  /// Perform the booking: decrement seats and award 50 points.
+  /// Perform the booking: decrement seats, record reservation, and award 50 points.
   Future<void> bookTable(
     String restDocId,
     int c2,
     int c4,
     int c8,
     int c12,
+    String timeSlot, // e.g., "2pm" | "6pm" | "9pm"
   ) async {
     final total = totalSeatsSelected(c2, c4, c8, c12);
     final restRef = _db.collection('rest').doc(restDocId);
@@ -73,6 +74,17 @@ class SeatBookingController {
 
     final user = _auth.currentUser;
     if (user != null) {
+      // Optional reservation record
+      await _db.collection('reservations').add({
+        'userId': user.uid,
+        'restaurantId': restDocId,
+        'timeSlot': timeSlot,
+        'counts': {'2': c2, '4': c4, '8': c8, '12': c12},
+        'totalSeats': total,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      // Award points
       await _db.collection('user_points').doc(user.uid).set({
         'points': FieldValue.increment(50),
       }, SetOptions(merge: true));

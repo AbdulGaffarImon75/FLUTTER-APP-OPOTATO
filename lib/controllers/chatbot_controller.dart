@@ -109,7 +109,7 @@ You can also point them to our "menu" collection.
 
     // 5) Assemble the final prompt
     final prompt = '''
-You are OPotato AI — a friendly food-discovery chatbot.
+You are OPotato AI — a friendly food-discovery chatbot. Keep your responses concise and engaging.
 
 $detailSection
 User preferences:

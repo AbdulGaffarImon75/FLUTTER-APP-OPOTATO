@@ -17,6 +17,10 @@ class _SeatBookingPageState extends State<SeatBookingPage> {
   String? _selectedDocId;
   Map<String, int>? _availability;
 
+  // Time slots
+  final List<String> _timeSlots = const ['2pm', '6pm', '9pm'];
+  String? _selectedTime;
+
   int _c2 = 0, _c4 = 0, _c8 = 0, _c12 = 0;
 
   @override
@@ -48,6 +52,7 @@ class _SeatBookingPageState extends State<SeatBookingPage> {
       _selectedDocId = docId;
       _availability = avail;
       _c2 = _c4 = _c8 = _c12 = 0;
+      _selectedTime = null; // reset when restaurant changes
     });
   }
 
@@ -116,9 +121,28 @@ class _SeatBookingPageState extends State<SeatBookingPage> {
               onChanged: _onRestaurantSelected,
             ),
             const SizedBox(height: 20),
+
             if (_availability != null) ...[
+              // Time slot selection
+              const Text('Select Time Slot:'),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children:
+                    _timeSlots.map((slot) {
+                      final selected = _selectedTime == slot;
+                      return ChoiceChip(
+                        label: Text(slot),
+                        selected: selected,
+                        onSelected: (_) => setState(() => _selectedTime = slot),
+                      );
+                    }).toList(),
+              ),
+              const SizedBox(height: 16),
+
               Text('Available Seats: ${_availability!['available']}'),
               const Divider(),
+
               _buildSelector(
                 'Couple Table (2)',
                 _c2,
@@ -143,14 +167,17 @@ class _SeatBookingPageState extends State<SeatBookingPage> {
                 (v) => setState(() => _c12 = v),
                 _availability!['12']!,
               ),
+
               const SizedBox(height: 16),
               Text(
                 'Total Selected: ${_ctrl.totalSeatsSelected(_c2, _c4, _c8, _c12)}',
               ),
               const SizedBox(height: 12),
+
               ElevatedButton(
                 onPressed:
-                    _ctrl.canBook(_c2, _c4, _c8, _c12, _availability!)
+                    (_selectedTime != null) &&
+                            _ctrl.canBook(_c2, _c4, _c8, _c12, _availability!)
                         ? () async {
                           await _ctrl.bookTable(
                             _selectedDocId!,
@@ -158,18 +185,27 @@ class _SeatBookingPageState extends State<SeatBookingPage> {
                             _c4,
                             _c8,
                             _c12,
+                            _selectedTime!, // pass chosen slot
                           );
                           // reload availability
                           _onRestaurantSelected(_selectedName);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Table booked successfully!'),
+                            SnackBar(
+                              content: Text('Table booked for $_selectedTime'),
                             ),
                           );
                         }
                         : null,
                 child: const Text('Book Table'),
               ),
+              if (_selectedTime == null)
+                const Padding(
+                  padding: EdgeInsets.only(top: 6),
+                  child: Text(
+                    'Please select a time slot.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ),
             ],
           ],
         ),

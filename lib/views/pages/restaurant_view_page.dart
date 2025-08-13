@@ -15,19 +15,19 @@ import 'menu_page.dart';
 import 'review_page.dart';
 import 'package:O_potato/views/cart_page.dart';
 
+// Variant option helper (outside the State class)
+class _PriceOption {
+  final String label; // e.g., "৳690"
+  final int value; // e.g., 690
+  const _PriceOption(this.label, this.value);
+}
+
 class RestaurantViewPage extends StatefulWidget {
   final String restaurantId;
   const RestaurantViewPage({super.key, required this.restaurantId});
 
   @override
   State<RestaurantViewPage> createState() => _RestaurantViewPageState();
-}
-
-// Variant option helper (outside the State class)
-class _PriceOption {
-  final String label; // e.g., "৳690"
-  final int value; // e.g., 690
-  const _PriceOption(this.label, this.value);
 }
 
 class _RestaurantViewPageState extends State<RestaurantViewPage> {
@@ -44,6 +44,7 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
   String _customerName = '';
 
   bool _loading = true;
+  String? _error;
   String? _userId;
 
   @override
@@ -53,64 +54,113 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
   }
 
   Future<void> _initAll() async {
-    _userId = FirebaseAuth.instance.currentUser?.uid;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
 
-    // 1) Restaurant info
-    _restaurant = await _ctrl.fetchRestaurant(widget.restaurantId);
+    try {
+      _userId = FirebaseAuth.instance.currentUser?.uid;
 
-    // 2) User status
-    if (_userId != null) {
-      _isCustomer = await _ctrl.isCustomer(_userId!);
-      if (_isCustomer) {
-        _customerName = await _ctrl.fetchUserName(_userId!);
-        _isFollowing = await _ctrl.fetchFollowStatus(
-          _userId!,
-          widget.restaurantId,
-        );
-        _isCheckedIn = await _ctrl.fetchCheckInStatus(
-          _userId!,
-          widget.restaurantId,
-        );
+      // 1) Restaurant info (required to proceed)
+      final r = await _ctrl.fetchRestaurant(widget.restaurantId);
+      if (!mounted) return;
+      if (r == null) {
+        setState(() {
+          _restaurant = null;
+          _loading = false;
+          _error = 'Restaurant not found';
+        });
+        return;
       }
-    }
+      _restaurant = r;
 
-    // 3) Offers & Combos
-    if (_restaurant != null) {
-      _offers = await _ctrl.fetchOffers(widget.restaurantId);
-      _combos = await _ctrl.fetchCombos(_restaurant!.name);
-    }
+      // 2) User status (in parallel where possible)
+      if (_userId != null) {
+        final isCust = await _ctrl.isCustomer(_userId!);
+        if (!mounted) return;
+        _isCustomer = isCust;
 
-    setState(() => _loading = false);
+        if (isCust) {
+          final results = await Future.wait([
+            _ctrl.fetchUserName(_userId!),
+            _ctrl.fetchFollowStatus(_userId!, widget.restaurantId),
+            _ctrl.fetchCheckInStatus(_userId!, widget.restaurantId),
+          ]);
+          if (!mounted) return;
+          _customerName = results[0] as String;
+          _isFollowing = results[1] as bool;
+          _isCheckedIn = results[2] as bool;
+        }
+      }
+
+      // 3) Offers & Combos (now that we know restaurant)
+      try {
+        _offers = await _ctrl.fetchOffers(widget.restaurantId);
+      } catch (e) {
+        // Keep page usable even if offers query fails
+        debugPrint('fetchOffers failed: $e');
+        _offers = const [];
+      }
+
+      try {
+        _combos = await _ctrl.fetchCombos(_restaurant!.name);
+      } catch (e) {
+        debugPrint('fetchCombos failed: $e');
+        _combos = const [];
+      }
+
+      if (!mounted) return;
+      setState(() => _loading = false);
+    } catch (e, st) {
+      debugPrint('Restaurant init failed: $e\n$st');
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = e.toString();
+      });
+    }
   }
 
   Future<void> _handleFollow() async {
     if (!_isCustomer || _userId == null || _restaurant == null) return;
-    await _ctrl.toggleFollow(
-      userId: _userId!,
-      restaurantId: widget.restaurantId,
-      restaurantName: _restaurant!.name,
-      customerName: _customerName,
-      currentlyFollowing: _isFollowing,
-    );
-    setState(() => _isFollowing = !_isFollowing);
+    try {
+      await _ctrl.toggleFollow(
+        userId: _userId!,
+        restaurantId: widget.restaurantId,
+        restaurantName: _restaurant!.name,
+        customerName: _customerName,
+        currentlyFollowing: _isFollowing,
+      );
+      if (!mounted) return;
+      setState(() => _isFollowing = !_isFollowing);
+    } catch (e) {
+      _toast('Failed to update follow: $e');
+    }
   }
 
   Future<void> _handleCheckIn() async {
     if (!_isCustomer || _userId == null || _restaurant == null) return;
-    await _ctrl.toggleCheckIn(
-      userId: _userId!,
-      customerName: _customerName,
-      restaurantId: widget.restaurantId,
-      restaurantName: _restaurant!.name,
-      currentlyCheckedIn: _isCheckedIn,
-    );
-    setState(() => _isCheckedIn = !_isCheckedIn);
+    try {
+      await _ctrl.toggleCheckIn(
+        userId: _userId!,
+        customerName: _customerName,
+        restaurantId: widget.restaurantId,
+        restaurantName: _restaurant!.name,
+        currentlyCheckedIn: _isCheckedIn,
+      );
+      if (!mounted) return;
+      setState(() => _isCheckedIn = !_isCheckedIn);
+    } catch (e) {
+      _toast('Failed to update check-in: $e');
+    }
   }
 
   void _toast(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    // (Snackbar is safe inside our global phone box)
   }
 
   /// Ensure cart contains only this restaurant's items (show replace dialog if not).
@@ -169,10 +219,9 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
     required String titleForSheet,
   }) async {
     final options = _extractPriceOptions(priceString);
-
     if (options.length == 1) return options.first;
-
     if (!mounted) return null;
+
     return showModalBottomSheet<_PriceOption>(
       context: context,
       builder: (ctx) {
@@ -227,7 +276,6 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
   Future<void> _addOffer(OfferModel o, RestaurantModel r) async {
     if (!_isCustomer) return;
     if (!await _ensureSingleRestaurantCart()) return;
-
     final picked = await _pickVariant(
       priceString: o.price,
       titleForSheet: o.title,
@@ -250,7 +298,6 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
   Future<void> _addCombo(ComboModel c, RestaurantModel r) async {
     if (!_isCustomer) return;
     if (!await _ensureSingleRestaurantCart()) return;
-
     final picked = await _pickVariant(
       priceString: c.price,
       titleForSheet: c.title,
@@ -274,8 +321,41 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading || _restaurant == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_loading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+        bottomNavigationBar: BottomNavBar(activeIndex: 2),
+      );
+    }
+
+    if (_error != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Error')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Failed to load restaurant.\n$_error',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton(onPressed: _initAll, child: const Text('Retry')),
+              ],
+            ),
+          ),
+        ),
+        bottomNavigationBar: const BottomNavBar(activeIndex: 2),
+      );
+    }
+
+    if (_restaurant == null) {
+      return const Scaffold(
+        body: Center(child: Text('Restaurant not found')),
+        bottomNavigationBar: BottomNavBar(activeIndex: 2),
+      );
     }
 
     final r = _restaurant!;
@@ -341,14 +421,20 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
             // Header: logo, name, check-in
             Row(
               children: [
-                CircleAvatar(
-                  radius: 40,
-                  backgroundImage:
-                      r.imageUrl.isNotEmpty ? NetworkImage(r.imageUrl) : null,
-                  child:
-                      r.imageUrl.isEmpty
-                          ? const Icon(Icons.store, size: 40)
-                          : null,
+                // CircleAvatar has no errorBuilder; use ClipOval + Image.network
+                ClipOval(
+                  child: Image.network(
+                    r.imageUrl,
+                    width: 80,
+                    height: 80,
+                    fit: BoxFit.cover,
+                    errorBuilder:
+                        (_, __, ___) => const SizedBox(
+                          width: 80,
+                          height: 80,
+                          child: Icon(Icons.store, size: 40),
+                        ),
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -434,10 +520,20 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
                 (o) => Card(
                   color: const Color.fromARGB(255, 245, 237, 255),
                   child: ListTile(
-                    leading: Image.network(
-                      o.imageUrl,
-                      width: 60,
-                      fit: BoxFit.cover,
+                    leading: ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Image.network(
+                        o.imageUrl,
+                        width: 60,
+                        height: 60,
+                        fit: BoxFit.cover,
+                        errorBuilder:
+                            (_, __, ___) => const SizedBox(
+                              width: 60,
+                              height: 60,
+                              child: Icon(Icons.image_not_supported),
+                            ),
+                      ),
                     ),
                     title: Text(o.title),
                     subtitle: Text(o.price),
@@ -474,10 +570,20 @@ class _RestaurantViewPageState extends State<RestaurantViewPage> {
                 (c) => Card(
                   color: const Color.fromARGB(255, 245, 237, 255),
                   child: ListTile(
-                    leading: Image.network(
-                      c.imageUrl,
-                      width: 60,
-                      fit: BoxFit.cover,
+                    leading: ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Image.network(
+                        c.imageUrl,
+                        width: 60,
+                        height: 60,
+                        fit: BoxFit.cover,
+                        errorBuilder:
+                            (_, __, ___) => const SizedBox(
+                              width: 60,
+                              height: 60,
+                              child: Icon(Icons.image_not_supported),
+                            ),
+                      ),
                     ),
                     title: Text(c.title),
                     subtitle: Text(c.price),
